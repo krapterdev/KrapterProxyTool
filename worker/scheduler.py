@@ -18,11 +18,8 @@ if __name__ == "__main__":
     print("Worker started. Press Ctrl+C to exit.")
     
     # Run once immediately on startup
-    print("Injecting test proxy to verify dashboard...")
-    from checker import redis_client
-    redis_client.zadd("proxies:level1", {"1.2.3.4:8080": 100})
-    print("Test proxy injected.")
-    
+    # Run once immediately on startup
+    print("Running initial job...")
     job()
     
     try:
