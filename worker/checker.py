@@ -3,6 +3,7 @@ import aiohttp
 import time
 import sqlite3
 import os
+import logging
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.path.join(BASE_DIR, "proxies.db")
@@ -28,30 +29,33 @@ def init_db():
 init_db()
 
 def save_to_db(new_proxies):
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    
-    for level, items in new_proxies.items():
-        for item in items:
-            # item = {"proxy": "IP:PORT:COUNTRY:CODE", "latency": 123}
-            proxy_str = item["proxy"]
-            latency = item["latency"]
-            
-            # Parse parts
-            parts = proxy_str.split(':')
-            ip = parts[0]
-            port = parts[1]
-            country = parts[2] if len(parts) > 2 else "Unknown"
-            country_code = parts[3] if len(parts) > 3 else "UN"
-            
-            # Insert or Replace
-            cursor.execute('''
-                INSERT OR REPLACE INTO proxies (proxy, ip, port, country, country_code, latency, level, last_updated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ''', (proxy_str, ip, port, country, country_code, latency, level))
-            
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        
+        count = 0
+        for level, items in new_proxies.items():
+            for item in items:
+                proxy_str = item["proxy"]
+                latency = item["latency"]
+                
+                parts = proxy_str.split(':')
+                ip = parts[0]
+                port = parts[1]
+                country = parts[2] if len(parts) > 2 else "Unknown"
+                country_code = parts[3] if len(parts) > 3 else "UN"
+                
+                cursor.execute('''
+                    INSERT OR REPLACE INTO proxies (proxy, ip, port, country, country_code, latency, level, last_updated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ''', (proxy_str, ip, port, country, country_code, latency, level))
+                count += 1
+                
+        conn.commit()
+        conn.close()
+        logging.info(f"Saved {count} proxies to DB.")
+    except Exception as e:
+        logging.error(f"Error saving to DB: {e}")
 
 async def check_proxy(session, proxy):
     # Use ip-api to get country and validate proxy
@@ -70,15 +74,17 @@ async def check_proxy(session, proxy):
             else:
                 pass
     except Exception as e:
+        # logging.debug(f"Proxy check failed for {proxy}: {e}")
         pass
     return proxy, None, None, None
 
 async def process_proxies(proxies):
     chunk_size = 50
+    logging.info(f"Processing {len(proxies)} proxies...")
     
     for i in range(0, len(proxies), chunk_size):
         chunk = proxies[i:i + chunk_size]
-        # print(f"Checking chunk {i}/{len(proxies)}...")
+        logging.info(f"Checking chunk {i}/{len(proxies)}...")
         
         async with aiohttp.ClientSession() as session:
             tasks = [check_proxy(session, proxy) for proxy in chunk]
@@ -104,11 +110,13 @@ async def process_proxies(proxies):
             # Save batch to DB
             if any(batch_results.values()):
                 save_to_db(batch_results)
+            else:
+                logging.info("No valid proxies in this chunk.")
 
 def run_checker(proxies):
     # Limit to 1000 proxies for testing if the list is huge
     if len(proxies) > 1000:
-        # print(f"⚠️ Limiting check to first 1000 of {len(proxies)} proxies for speed.")
+        logging.info(f"Limiting check to first 1000 of {len(proxies)} proxies for speed.")
         proxies = proxies[:1000]
 
     loop = asyncio.new_event_loop()
