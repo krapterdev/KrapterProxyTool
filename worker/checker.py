@@ -4,7 +4,8 @@ import time
 import sqlite3
 import os
 
-DB_FILE = "proxies.db"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_FILE = os.path.join(BASE_DIR, "proxies.db")
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
