@@ -1,27 +1,18 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-import uvicorn
-import os
-
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-import uvicorn
 import os
 
-app = FastAPI()
+app = FastAPI(title="ProxyHub Frontend")
 
-# Configuration
-templates = Jinja2Templates(directory="templates")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
+async def read_dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
 @app.get("/proxylist", response_class=HTMLResponse)
 async def read_proxylist(request: Request):
     return templates.TemplateResponse("proxylist.html", {"request": request})
-
-if __name__ == "__main__":
-    # This allows running 'python app.py' directly if needed
-    uvicorn.run(app, host="0.0.0.0", port=8080)
