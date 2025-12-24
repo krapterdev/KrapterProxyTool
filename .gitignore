@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+venv/
+env/
+.idea/
+.vscode/
+*.log
+Lib/
+Scripts/
+share/
+include/

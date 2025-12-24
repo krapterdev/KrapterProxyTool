@@ -1,0 +1,5 @@
+nicegui
+redis
+pandas
+requests
+plotly
