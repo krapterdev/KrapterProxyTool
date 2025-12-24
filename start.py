@@ -10,9 +10,8 @@ if os.name == 'nt':
 else:
     PYTHON_EXE = os.path.join(VENV_DIR, "bin", "python")
 
-REDIS_PORT = "6380"
-BACKEND_PORT = "8000"
-FRONTEND_PORT = "8080"
+# Render provides PORT env var
+PORT = os.getenv("PORT", "8000")
 
 def run_command(cmd, cwd=None):
     try:
@@ -48,70 +47,54 @@ def run_service(command_args, cwd, env_vars=None):
         env.update(env_vars)
     
     cmd_str = " ".join(command_args)
-    # Use CREATE_NEW_CONSOLE flag on Windows if possible to separate logs? 
-    # For now, keep in same console but rely on log levels.
     return subprocess.Popen(cmd_str, cwd=cwd, env=env, shell=True)
 
 def main():
     print("===================================================")
-    print("🚀 Krapter Proxy Tool - Robust Launcher")
+    print("🚀 Krapter Proxy Tool - Render Launcher")
     print("===================================================")
     
-    # 0. Check/Create Venv
-    if not os.path.exists(PYTHON_EXE):
+    # 0. Check/Create Venv (Only if not on Render/Docker where env is pre-built)
+    # On Render, we usually use the system python or pre-installed deps.
+    # But for local consistency, we keep this check.
+    if not os.path.exists(PYTHON_EXE) and os.name == 'nt':
+         # Only auto-setup on Windows/Local. On Render, pip install is done via build command.
         print("⚠️ Virtual environment not found. Initializing...")
         try:
             setup_venv()
         except Exception as e:
             print(f"❌ Critical Setup Error: {e}")
-            print("Your Python installation might be broken. Please reinstall Python from python.org")
-            input("Press Enter to exit...")
             return
 
-    # 1. Start Redis (Docker) - REMOVED
-    # print("\n[1/4] Checking Redis (Docker)...")
-    # try:
-    #     subprocess.run("docker-compose up -d redis", shell=True, check=True)
-    # except subprocess.CalledProcessError:
-    #     print("❌ Failed to start Redis. Is Docker Desktop running?")
-    #     return
+    # Use system python if venv python doesn't exist (e.g. on Render)
+    python_cmd = f'"{PYTHON_EXE}"' if os.path.exists(PYTHON_EXE) else "python"
 
     processes = []
     
     try:
-        # 2. Start Backend
-        print(f"\n[1/3] Starting Backend (Port {BACKEND_PORT})...")
-        p_backend = run_service(
-            [f'"{PYTHON_EXE}"', "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", BACKEND_PORT, "--reload", "--log-level", "warning"],
-            cwd="backend"
-        )
-        processes.append(p_backend)
-        time.sleep(2)
-        
-        # 3. Start Worker
-        print("\n[2/3] Starting Worker...")
+        # 1. Start Worker
+        print("\n[1/2] Starting Worker...")
         p_worker = run_service(
-            [f'"{PYTHON_EXE}"', "scheduler.py"],
+            [python_cmd, "scheduler.py"],
             cwd="worker"
         )
         processes.append(p_worker)
         
-        # 4. Start Frontend
-        print(f"\n[3/3] Starting Frontend (Port {FRONTEND_PORT})...")
-        p_frontend = run_service(
-            [f'"{PYTHON_EXE}"', "app.py"],
-            cwd="frontend",
-            env_vars={"BACKEND_URL": f"http://127.0.0.1:{BACKEND_PORT}"}
+        # 2. Start Backend (which serves Frontend)
+        print(f"\n[2/2] Starting Backend & Frontend (Port {PORT})...")
+        # On Render, we must bind to 0.0.0.0:$PORT
+        p_backend = run_service(
+            [python_cmd, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", PORT],
+            cwd="backend"
         )
-        processes.append(p_frontend)
+        processes.append(p_backend)
         
-        print("\n✅ All services are running from Virtual Environment!")
-        print(f"👉 Dashboard: http://localhost:{FRONTEND_PORT}")
+        print(f"\n✅ Services running! Access at http://localhost:{PORT}")
         print("Press Ctrl+C to stop.")
         
-        while True:
-            time.sleep(1)
-            
+        # Wait for processes
+        p_backend.wait()
+        
     except KeyboardInterrupt:
         print("\n🛑 Stopping services...")
         for p in processes:
