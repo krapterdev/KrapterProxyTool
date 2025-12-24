@@ -68,42 +68,40 @@ def main():
             input("Press Enter to exit...")
             return
 
-    # 1. Start Redis (Docker)
-    print("\n[1/4] Checking Redis (Docker)...")
-    try:
-        subprocess.run("docker-compose up -d redis", shell=True, check=True)
-    except subprocess.CalledProcessError:
-        print("❌ Failed to start Redis. Is Docker Desktop running?")
-        return
+    # 1. Start Redis (Docker) - REMOVED
+    # print("\n[1/4] Checking Redis (Docker)...")
+    # try:
+    #     subprocess.run("docker-compose up -d redis", shell=True, check=True)
+    # except subprocess.CalledProcessError:
+    #     print("❌ Failed to start Redis. Is Docker Desktop running?")
+    #     return
 
     processes = []
     
     try:
         # 2. Start Backend
-        print(f"\n[2/4] Starting Backend (Port {BACKEND_PORT})...")
+        print(f"\n[1/3] Starting Backend (Port {BACKEND_PORT})...")
         p_backend = run_service(
             [f'"{PYTHON_EXE}"', "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", BACKEND_PORT, "--reload", "--log-level", "warning"],
-            cwd="backend",
-            env_vars={"REDIS_PORT": REDIS_PORT}
+            cwd="backend"
         )
         processes.append(p_backend)
         time.sleep(2)
         
         # 3. Start Worker
-        print("\n[3/4] Starting Worker...")
+        print("\n[2/3] Starting Worker...")
         p_worker = run_service(
             [f'"{PYTHON_EXE}"', "scheduler.py"],
-            cwd="worker",
-            env_vars={"REDIS_PORT": REDIS_PORT}
+            cwd="worker"
         )
         processes.append(p_worker)
         
         # 4. Start Frontend
-        print(f"\n[4/4] Starting Frontend (Port {FRONTEND_PORT})...")
+        print(f"\n[3/3] Starting Frontend (Port {FRONTEND_PORT})...")
         p_frontend = run_service(
             [f'"{PYTHON_EXE}"', "app.py"],
             cwd="frontend",
-            env_vars={"BACKEND_URL": f"http://127.0.0.1:{BACKEND_PORT}", "REDIS_PORT": REDIS_PORT}
+            env_vars={"BACKEND_URL": f"http://127.0.0.1:{BACKEND_PORT}"}
         )
         processes.append(p_frontend)
         

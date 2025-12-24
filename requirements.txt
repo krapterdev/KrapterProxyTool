@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-redis
 aiohttp
 requests
 jinja2
+openpyxl
