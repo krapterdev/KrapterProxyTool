@@ -16,7 +16,7 @@ def get_db_connection():
 
 def init_db():
     # Wait for DB to be ready
-    retries = 5
+    retries = 30
     while retries > 0:
         try:
             conn = get_db_connection()

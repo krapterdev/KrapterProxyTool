@@ -16,7 +16,7 @@ def get_db_connection():
 
 def init_db():
     # Wait for DB to be ready and ensure schema is correct
-    retries = 5
+    retries = 30
     while retries > 0:
         try:
             conn = get_db_connection()
@@ -43,14 +43,14 @@ def init_db():
                 cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS port TEXT")
                 conn.commit()
             except Exception as e:
-                logging.warning(f"Migration warning: {e}")
+                # logging.warning(f"Migration warning: {e}")
                 conn.rollback()
                 
             conn.close()
-            logging.info("Worker DB initialized successfully.")
+            # logging.info("Worker DB initialized successfully.")
             break
         except Exception as e:
-            logging.warning(f"DB not ready yet, retrying... ({e})")
+            # logging.warning(f"DB not ready yet, retrying... ({e})")
             time.sleep(2)
             retries -= 1
 
@@ -88,7 +88,7 @@ def save_to_db(new_proxies):
                 
         conn.commit()
         conn.close()
-        logging.info(f"Saved {count} proxies to DB.")
+        # logging.info(f"Saved {count} proxies to DB.")
     except Exception as e:
         logging.error(f"Error saving to DB: {e}")
 
@@ -115,11 +115,11 @@ async def check_proxy(session, proxy):
 
 async def process_proxies(proxies):
     chunk_size = 50
-    logging.info(f"Processing {len(proxies)} proxies...")
+    # logging.info(f"Processing {len(proxies)} proxies...")
     
     for i in range(0, len(proxies), chunk_size):
         chunk = proxies[i:i + chunk_size]
-        logging.info(f"Checking chunk {i}/{len(proxies)}...")
+        # logging.info(f"Checking chunk {i}/{len(proxies)}...")
         
         async with aiohttp.ClientSession() as session:
             tasks = [check_proxy(session, proxy) for proxy in chunk]
@@ -144,11 +144,12 @@ async def process_proxies(proxies):
             
             # Save batch to DB
             if any(batch_results.values()):
-                print(f"Saving batch of {len(batch_results['gold']) + len(batch_results['silver']) + len(batch_results['bronze'])} proxies to DB...")
+                # print(f"Saving batch of {len(batch_results['gold']) + len(batch_results['silver']) + len(batch_results['bronze'])} proxies to DB...")
                 save_to_db(batch_results)
             else:
-                logging.info("No valid proxies in this chunk.")
-                print("No valid proxies in this chunk (all failed or too slow).")
+                # logging.info("No valid proxies in this chunk.")
+                # print("No valid proxies in this chunk (all failed or too slow).")
+                pass
 
 def run_checker(proxies):
     # Limit to 1000 proxies for testing if the list is huge
