@@ -132,8 +132,8 @@ async def process_proxies(proxies):
                     proxy_str = f"{proxy}:{country}:{country_code}"
                     item = {"proxy": proxy_str, "latency": latency}
 
-                    # Filter: 50ms - 1200ms
-                    if latency < 50:
+                    # Filter: 10ms - 1200ms
+                    if latency < 10:
                         pass # Too fast/suspicious
                     elif latency < 300:
                         batch_results["gold"].append(item)
