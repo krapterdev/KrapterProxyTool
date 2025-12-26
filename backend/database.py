@@ -100,6 +100,7 @@ class PostgresClient:
                 WHERE proxy IN (
                     SELECT proxy FROM proxies 
                     WHERE assigned_to IS NULL 
+                    AND level != 'gold'
                     ORDER BY latency ASC 
                     LIMIT %s
                 )

@@ -14,6 +14,21 @@ class UserUpgrade(BaseModel):
     email: str
     new_limit: int
 
+class UserSignup(BaseModel):
+    email: str
+    password: str
+
+@router.post("/signup")
+async def signup(user_data: UserSignup):
+    # Check if user exists
+    from auth import create_user
+    # Default limit is 15 (handled in create_user)
+    try:
+        create_user(user_data.email, user_data.password)
+        return {"message": "User created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/proxies/all")
 async def get_all_proxies(current_user: dict = Depends(get_current_user_obj)): 
     # Use the user's proxy limit
@@ -99,7 +114,7 @@ async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends(g
 
 # Public/External API (Protected by token still, but maybe different rate limits later)
 @router.get("/api/proxies/external")
-async def get_external_proxies(limit: int = 10, current_user: dict = Depends(get_current_user_obj)):
+async def get_external_proxies(limit: int = None, current_user: dict = Depends(get_current_user_obj)):
     # Ensure they don't exceed their assigned limit
     user_limit = current_user["proxy_limit"]
     email = current_user["email"]
@@ -108,18 +123,25 @@ async def get_external_proxies(limit: int = 10, current_user: dict = Depends(get
     if not current_user["is_admin"]:
         redis_client.assign_proxies(email, user_limit)
         
-    actual_limit = min(limit, user_limit)
+    # If limit is not provided or greater than user_limit, use user_limit (return all assigned)
+    if limit is None or limit > user_limit:
+        actual_limit = user_limit
+    else:
+        actual_limit = limit
     
-    all_data = redis_client.get_all_proxies(limit=actual_limit)
+    all_data = redis_client.get_all_proxies(limit=actual_limit, user_email=email, is_admin=current_user["is_admin"])
     # Flatten the list
     flat_list = []
-    for level in all_data:
-        for p in all_data[level]:
-             # p["proxy"] is "IP:PORT:COUNTRY:CODE"
-             # We just want IP:PORT
-            parts = p["proxy"].split(":")
-            if len(parts) >= 2:
-                flat_list.append(f"{parts[0]}:{parts[1]}")
+    
+    # Prioritize Gold -> Silver -> Bronze
+    for level in ["gold", "silver", "bronze"]:
+        if level in all_data:
+            for p in all_data[level]:
+                 # p["proxy"] is "IP:PORT:COUNTRY:CODE"
+                 # We just want IP:PORT
+                parts = p["proxy"].split(":")
+                if len(parts) >= 2:
+                    flat_list.append(f"{parts[0]}:{parts[1]}")
         
     return Response(content="\n".join(flat_list[:actual_limit]), media_type="text/plain")
 
