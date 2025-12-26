@@ -15,9 +15,44 @@ def get_db_connection():
     return psycopg2.connect(DB_URL)
 
 def init_db():
-    # Worker might start before DB is ready, but backend handles init mostly.
-    # We'll just try to connect.
-    pass
+    # Wait for DB to be ready and ensure schema is correct
+    retries = 5
+    while retries > 0:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Proxies table (Ensure ip/port exist)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS proxies (
+                    proxy TEXT PRIMARY KEY,
+                    ip TEXT,
+                    port TEXT,
+                    latency INTEGER,
+                    country TEXT,
+                    country_code TEXT,
+                    level TEXT,
+                    last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    assigned_to TEXT
+                )
+            ''')
+            
+            # Migration: Add columns if they don't exist (for existing DBs)
+            try:
+                cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS ip TEXT")
+                cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS port TEXT")
+                conn.commit()
+            except Exception as e:
+                logging.warning(f"Migration warning: {e}")
+                conn.rollback()
+                
+            conn.close()
+            logging.info("Worker DB initialized successfully.")
+            break
+        except Exception as e:
+            logging.warning(f"DB not ready yet, retrying... ({e})")
+            time.sleep(2)
+            retries -= 1
 
 # Initialize DB
 init_db()
