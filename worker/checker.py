@@ -77,13 +77,15 @@ def save_to_db(new_proxies):
                 # Use ON CONFLICT to preserve assigned_to
                 # Postgres syntax: ON CONFLICT (proxy) DO UPDATE SET ...
                 cursor.execute('''
-                    INSERT INTO proxies (proxy, ip, port, country, country_code, latency, level, last_checked)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    INSERT INTO proxies (proxy, ip, port, country, country_code, latency, level, last_checked, lat, lon)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
                     ON CONFLICT (proxy) DO UPDATE SET
                         latency=EXCLUDED.latency,
                         level=EXCLUDED.level,
-                        last_checked=CURRENT_TIMESTAMP
-                ''', (proxy_str, ip, port, country, country_code, latency, level))
+                        last_checked=CURRENT_TIMESTAMP,
+                        lat=EXCLUDED.lat,
+                        lon=EXCLUDED.lon
+                ''', (proxy_str, ip, port, country, country_code, latency, level, item.get("lat"), item.get("lon")))
                 count += 1
                 
         conn.commit()
@@ -105,13 +107,15 @@ async def check_proxy(session, proxy):
                 data = await response.json()
                 country = data.get("country", "Unknown")
                 country_code = data.get("countryCode", "UN")
-                return proxy, latency, country, country_code
+                lat = data.get("lat")
+                lon = data.get("lon")
+                return proxy, latency, country, country_code, lat, lon
             else:
                 pass
     except Exception as e:
         # logging.debug(f"Proxy check failed for {proxy}: {e}")
         pass
-    return proxy, None, None, None
+    return proxy, None, None, None, None, None
 
 async def process_proxies(proxies):
     chunk_size = 50
@@ -127,10 +131,10 @@ async def process_proxies(proxies):
             
             batch_results = {"gold": [], "silver": [], "bronze": []}
 
-            for proxy, latency, country, country_code in results:
+            for proxy, latency, country, country_code, lat, lon in results:
                 if latency is not None:
                     proxy_str = f"{proxy}:{country}:{country_code}"
-                    item = {"proxy": proxy_str, "latency": latency}
+                    item = {"proxy": proxy_str, "latency": latency, "lat": lat, "lon": lon}
 
                     # Filter: 10ms - 1200ms
                     if latency < 10:

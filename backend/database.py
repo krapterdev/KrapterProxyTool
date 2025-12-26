@@ -33,7 +33,9 @@ def init_db():
                     country_code TEXT,
                     level TEXT,
                     last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    assigned_to TEXT
+                    assigned_to TEXT,
+                    lat REAL,
+                    lon REAL
                 )
             ''')
             
@@ -41,6 +43,8 @@ def init_db():
             try:
                 cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS ip TEXT")
                 cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS port TEXT")
+                cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS lat REAL")
+                cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS lon REAL")
                 conn.commit()
             except Exception as e:
                 print(f"Migration warning: {e}")
@@ -161,7 +165,9 @@ class PostgresClient:
             p = {
                 "proxy": row["proxy"], 
                 "latency": row["latency"],
-                "assigned_to": row.get("assigned_to")
+                "assigned_to": row.get("assigned_to"),
+                "lat": row.get("lat"),
+                "lon": row.get("lon")
             }
             if row["level"] == "gold":
                 gold.append(p)
