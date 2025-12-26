@@ -51,61 +51,19 @@ def run_service(command_args, cwd, env_vars=None):
 
 def main():
     print("===================================================")
-    print("🚀 Krapter Proxy Tool - Local Launcher")
+    print("🚀 Krapter Proxy Tool - Launcher")
     print("===================================================")
-    
-    # 0. Check/Create Venv
-    if not os.path.exists(PYTHON_EXE):
-        print("⚠️ Virtual environment not found. Initializing...")
-        try:
-            setup_venv()
-        except Exception as e:
-            print(f"❌ Critical Setup Error: {e}")
-            return
-
-    # Use system python if venv python doesn't exist
-    python_cmd = f'"{PYTHON_EXE}"' if os.path.exists(PYTHON_EXE) else "python"
-
-    processes = []
-    
-    try:
-        # 1. Start Backend
-        print(f"\n[1/3] Starting Backend (Port {BACKEND_PORT})...")
-        p_backend = run_service(
-            [python_cmd, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", BACKEND_PORT, "--reload", "--log-level", "warning"],
-            cwd="backend"
-        )
-        processes.append(p_backend)
-        time.sleep(2)
-        
-        # 2. Start Worker
-        print("\n[2/3] Starting Worker...")
-        p_worker = run_service(
-            [python_cmd, "scheduler.py"],
-            cwd="worker"
-        )
-        processes.append(p_worker)
-        
-        # 3. Start Frontend
-        print(f"\n[3/3] Starting Frontend (Port {FRONTEND_PORT})...")
-        p_frontend = run_service(
-            [python_cmd, "-m", "uvicorn", "app:app", "--host", "127.0.0.1", "--port", FRONTEND_PORT, "--reload", "--log-level", "warning"],
-            cwd="frontend"
-        )
-        processes.append(p_frontend)
-        
-        print("\n✅ All services are running!")
-        print(f"👉 Dashboard: http://localhost:{FRONTEND_PORT}")
-        print("Press Ctrl+C to stop.")
-        
-        # Wait for processes
-        p_backend.wait()
-        
-    except KeyboardInterrupt:
-        print("\n🛑 Stopping services...")
-        for p in processes:
-            p.terminate()
-        print("Done.")
+    print("")
+    print("⚠️  IMPORTANT NOTICE ⚠️")
+    print("")
+    print("The application has been migrated to use Docker with PostgreSQL and Redis.")
+    print("You cannot run it using 'python start.py' anymore because it requires these services.")
+    print("")
+    print("👉 Please run the following command instead:")
+    print("")
+    print("    docker-compose up --build")
+    print("")
+    print("===================================================")
 
 if __name__ == "__main__":
     main()
