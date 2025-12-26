@@ -26,6 +26,8 @@ def init_db():
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS proxies (
                     proxy TEXT PRIMARY KEY,
+                    ip TEXT,
+                    port TEXT,
                     latency INTEGER,
                     country TEXT,
                     country_code TEXT,
@@ -34,6 +36,15 @@ def init_db():
                     assigned_to TEXT
                 )
             ''')
+            
+            # Migration: Add columns if they don't exist (for existing DBs)
+            try:
+                cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS ip TEXT")
+                cursor.execute("ALTER TABLE proxies ADD COLUMN IF NOT EXISTS port TEXT")
+                conn.commit()
+            except Exception as e:
+                print(f"Migration warning: {e}")
+                conn.rollback()
             
             # Users table for Authentication
             cursor.execute('''
