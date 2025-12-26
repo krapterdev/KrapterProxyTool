@@ -10,7 +10,16 @@ A powerful proxy scraping and checking tool with a modern dashboard.
 - **Stability Score**: Visual indicator of proxy stability.
 - **Country Flags**: Displays country of origin for each proxy.
 
-## Installation
+## Installation & Usage (Docker)
+
+The application is containerized using Docker. This ensures all dependencies (PostgreSQL, Redis, Python) are set up correctly.
+
+### Prerequisites
+
+- **Docker Desktop** (Windows/Mac) or **Docker Engine** (Linux/Ubuntu)
+- **Docker Compose**
+
+### How to Run
 
 1.  Clone the repository:
 
@@ -19,20 +28,33 @@ A powerful proxy scraping and checking tool with a modern dashboard.
     cd KrapterProxyTool
     ```
 
-2.  Install dependencies:
+2.  Run with Docker Compose:
+
+    **Windows / Mac / Newer Linux:**
 
     ```bash
-    pip install -r requirements.txt
+    docker compose up --build
     ```
 
-3.  Ensure Redis is running.
+    **Ubuntu (Legacy/Standard):**
 
-## Usage
+    ```bash
+    docker-compose up --build
+    ```
 
-Run the starter script:
+    _If `docker-compose` is not found on Ubuntu, install it:_
 
-```bash
-python start.py
-```
+    ```bash
+    sudo apt-get update
+    sudo apt-get install docker-compose-plugin
+    # Then use: docker compose up --build
+    ```
 
-Access the dashboard at `http://localhost:8080`.
+3.  Access the Dashboard:
+    - Open `http://localhost:8080` in your browser.
+    - **Login**: `krapter.dev@gmail.com` / `admin123`
+
+### Troubleshooting
+
+- **"Connection Refused"**: Ensure you are running with Docker, not `python start.py`.
+- **"No Proxies"**: Check the Docker logs. The worker might be failing to fetch from sources if the container has no internet access.
