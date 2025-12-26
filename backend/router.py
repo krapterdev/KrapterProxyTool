@@ -5,6 +5,7 @@ import openpyxl
 from fastapi.responses import FileResponse, Response
 import os
 from io import BytesIO
+from auth import get_current_user_obj
 
 router = APIRouter()
 
@@ -13,10 +14,8 @@ class UserUpgrade(BaseModel):
     email: str
     new_limit: int
 
-# Dependency to get current user is injected in main.py via app.include_router
-
 @router.get("/proxies/all")
-async def get_all_proxies(current_user: dict = Depends()): # current_user injected by main
+async def get_all_proxies(current_user: dict = Depends(get_current_user_obj)): 
     # Use the user's proxy limit
     limit = current_user["proxy_limit"]
     email = current_user["email"]
@@ -29,7 +28,7 @@ async def get_all_proxies(current_user: dict = Depends()): # current_user inject
     return redis_client.get_all_proxies(limit=limit if not is_admin else None, user_email=email, is_admin=is_admin)
 
 @router.get("/proxies/{level}")
-async def get_proxies_by_level(level: str, current_user: dict = Depends()):
+async def get_proxies_by_level(level: str, current_user: dict = Depends(get_current_user_obj)):
     if level not in ["gold", "silver", "bronze"]:
         raise HTTPException(status_code=400, detail="Invalid level")
     
@@ -47,7 +46,7 @@ async def get_stats():
     return redis_client.get_stats()
 
 @router.get("/proxies/export/excel")
-async def export_excel(current_user: dict = Depends()):
+async def export_excel(current_user: dict = Depends(get_current_user_obj)):
     # Export respects limit too
     limit = current_user["proxy_limit"]
     data = redis_client.get_all_proxies(limit=limit)
@@ -91,7 +90,7 @@ async def export_excel(current_user: dict = Depends()):
 
 # Admin Endpoint
 @router.post("/admin/upgrade")
-async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends()):
+async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends(get_current_user_obj)):
     if not current_user["is_admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -100,7 +99,7 @@ async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends()
 
 # Public/External API (Protected by token still, but maybe different rate limits later)
 @router.get("/api/proxies/external")
-async def get_external_proxies(limit: int = 10, current_user: dict = Depends()):
+async def get_external_proxies(limit: int = 10, current_user: dict = Depends(get_current_user_obj)):
     # Ensure they don't exceed their assigned limit
     user_limit = current_user["proxy_limit"]
     actual_limit = min(limit, user_limit)
