@@ -37,5 +37,5 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     tokens[token] = user["email"]
     return {"access_token": token, "token_type": "bearer"}
 
-# Include API Router (Protected)
-app.include_router(router, dependencies=[Depends(get_current_user_obj)])
+# Include API Router
+app.include_router(router)
