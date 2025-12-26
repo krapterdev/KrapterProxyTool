@@ -62,50 +62,36 @@
             Account created! <a href="/login" class="underline">Log in now</a>
         </div>
 
-        <p class="mt-6 text-center text-slate-400 text-sm">
-            Already have an account?
-            <a href="/login" class="text-blue-400 hover:text-blue-300 font-medium transition-colors">Log in</a>
-        </p>
-    </div>
+        const successDiv = document.getElementById('successMessage');
 
-    <script>
-        const BACKEND_URL = "{{ backend_url }}"; // Injected by Jinja2
+        errorDiv.classList.add('hidden');
+        successDiv.classList.add('hidden');
 
-        document.getElementById('signupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('errorMessage');
-            const successDiv = document.getElementById('successMessage');
-
-            errorDiv.classList.add('hidden');
-            successDiv.classList.add('hidden');
-
-            try {
-                const response = await fetch(`${BACKEND_URL}/signup`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email, password }),
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    successDiv.classList.remove('hidden');
-                    document.getElementById('signupForm').reset();
-                } else {
-                    errorDiv.textContent = data.detail || 'Signup failed';
-                    errorDiv.classList.remove('hidden');
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Network error. Please ensure backend is running.';
-                errorDiv.classList.remove('hidden');
-                console.error('Error:', error);
-            }
+        try {
+        const response = await fetch(`${BACKEND_URL}/signup`, {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
         });
-    </script>
+
+        const data = await response.json();
+
+        if (response.ok) {
+        successDiv.classList.remove('hidden');
+        document.getElementById('signupForm').reset();
+        } else {
+        errorDiv.textContent = data.detail || 'Signup failed';
+        errorDiv.classList.remove('hidden');
+        }
+        } catch (error) {
+        errorDiv.textContent = 'Network error. Please ensure backend is running.';
+        errorDiv.classList.remove('hidden');
+        console.error('Error:', error);
+        }
+        });
+        </script>
 </body>
 
 </html>
