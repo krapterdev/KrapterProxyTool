@@ -10,21 +10,24 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def create_user(username, password):
+def create_user(email, password, proxy_limit=10, is_admin=False):
     conn = get_db_connection()
     try:
         hashed_password = get_password_hash(password)
-        conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed_password))
+        conn.execute(
+            "INSERT INTO users (email, password_hash, proxy_limit, is_admin) VALUES (?, ?, ?, ?)", 
+            (email, hashed_password, proxy_limit, is_admin)
+        )
         conn.commit()
-        print(f"User '{username}' created successfully.")
+        print(f"User '{email}' created successfully.")
     except sqlite3.IntegrityError:
-        print(f"User '{username}' already exists.")
+        print(f"User '{email}' already exists.")
     finally:
         conn.close()
 
-def authenticate_user(username, password):
+def authenticate_user(email, password):
     conn = get_db_connection()
-    user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
     conn.close()
     
     if not user:
@@ -35,7 +38,7 @@ def authenticate_user(username, password):
 
 # Create default admin user if not exists
 def init_auth():
-    create_user("admin", "admin123")
+    create_user("krapter.dev@gmail.com", "admin123", proxy_limit=1000, is_admin=True)
 
 if __name__ == "__main__":
     init_auth()

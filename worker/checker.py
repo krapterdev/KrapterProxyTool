@@ -19,7 +19,8 @@ def init_db():
             country_code TEXT,
             latency INTEGER,
             level TEXT,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            assigned_to TEXT
         )
     ''')
     conn.commit()
@@ -45,9 +46,14 @@ def save_to_db(new_proxies):
                 country = parts[2] if len(parts) > 2 else "Unknown"
                 country_code = parts[3] if len(parts) > 3 else "UN"
                 
+                # Use ON CONFLICT to preserve assigned_to
                 cursor.execute('''
-                    INSERT OR REPLACE INTO proxies (proxy, ip, port, country, country_code, latency, level, last_updated)
+                    INSERT INTO proxies (proxy, ip, port, country, country_code, latency, level, last_updated)
                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(proxy) DO UPDATE SET
+                        latency=excluded.latency,
+                        level=excluded.level,
+                        last_updated=CURRENT_TIMESTAMP
                 ''', (proxy_str, ip, port, country, country_code, latency, level))
                 count += 1
                 

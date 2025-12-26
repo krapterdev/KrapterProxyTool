@@ -32,15 +32,32 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 @app.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    # OAuth2PasswordRequestForm has 'username' field, we use it for email
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
     
     token = secrets.token_hex(16)
-    tokens[token] = user["username"]
+    # Store full user info or just email? Let's store email and fetch user on request to get latest limit
+    tokens[token] = user["email"]
     return {"access_token": token, "token_type": "bearer"}
 
 # Include API Router (Protected)
-# We exclude /api/proxies/external from protection if we want public access, 
-# but for now let's protect everything. The user can use the token.
-app.include_router(router, dependencies=[Depends(get_current_user)])
+# We pass get_current_user as a dependency to the router so endpoints can access the user
+# Note: The router functions need to accept 'current_user' argument
+from database import redis_client
+
+def get_current_user_obj(token: str = Depends(oauth2_scheme)):
+    email = tokens.get(token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = redis_client.get_user_by_email(email)
+    if not user:
+         raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+app.include_router(router, dependencies=[Depends(get_current_user_obj)])
