@@ -48,7 +48,7 @@ def authenticate_user(email, password):
 
 # Create default admin user if not exists
 def init_auth():
-    create_user("krapter.dev@gmail.com", "admin123", proxy_limit=1000, is_admin=True)
+    create_user("krapter.dev@gmail.com", "Chikki!@#1998", proxy_limit=1000, is_admin=True)
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer

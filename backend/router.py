@@ -18,16 +18,7 @@ class UserSignup(BaseModel):
     email: str
     password: str
 
-@router.post("/signup")
-async def signup(user_data: UserSignup):
-    # Check if user exists
-    from auth import create_user
-    # Default limit is 15 (handled in create_user)
-    try:
-        create_user(user_data.email, user_data.password)
-        return {"message": "User created successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# Signup endpoint removed for single-user mode
 
 @router.get("/proxies/all")
 async def get_all_proxies(current_user: dict = Depends(get_current_user_obj)): 

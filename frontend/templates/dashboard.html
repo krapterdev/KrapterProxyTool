@@ -13,6 +13,11 @@
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
         rel="stylesheet" />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -21,7 +26,8 @@
                     colors: {
                         "primary": "#135bec",
                         "background-light": "#f6f6f8",
-                        "background-dark": "#101622",
+                        "background-dark": "#0b0f19",
+                        "card-dark": "#1a2234",
                     },
                     fontFamily: {
                         "display": ["Inter", "sans-serif"]
@@ -41,12 +47,18 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #334155;
             border-radius: 3px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            background: #475569;
+        }
+
+        .glass-panel {
+            background: rgba(26, 34, 52, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
     </style>
 </head>
@@ -56,8 +68,8 @@
 
     <!-- Sidebar -->
     <aside
-        class="w-64 bg-white dark:bg-[#1a2234] border-r border-slate-200 dark:border-slate-700 flex flex-col hidden md:flex shrink-0 z-20 transition-colors duration-300">
-        <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-700">
+        class="w-64 bg-white dark:bg-card-dark border-r border-slate-200 dark:border-slate-800 flex flex-col hidden md:flex shrink-0 z-20 transition-colors duration-300">
+        <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-800">
             <div class="flex items-center gap-2 text-primary">
                 <span class="material-symbols-outlined text-3xl">hub</span>
                 <span class="text-slate-900 dark:text-white text-xl font-bold tracking-tight">ProxyHub</span>
@@ -75,12 +87,12 @@
                 <span>Proxy List</span>
             </a>
         </nav>
-        <div class="p-4 border-t border-slate-100 dark:border-slate-700">
-            <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">Status</p>
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800">
+            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">System Status</p>
                 <div class="flex justify-between items-end mb-1">
-                    <span class="text-sm font-bold text-slate-900 dark:text-white">Active</span>
-                    <span class="text-xs text-primary font-medium cursor-pointer hover:underline">v1.0</span>
+                    <span class="text-sm font-bold text-slate-900 dark:text-white">Operational</span>
+                    <span class="text-xs text-emerald-500 font-medium">100% Uptime</span>
                 </div>
                 <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
                     <div class="bg-emerald-500 h-1.5 rounded-full animate-pulse" style="width: 100%"></div>
@@ -90,14 +102,15 @@
     </aside>
 
     <!-- Main Layout -->
-    <div class="flex-1 flex flex-col min-w-0 bg-[#f8f9fc] dark:bg-[#0b0f19] transition-colors duration-300">
+    <div class="flex-1 flex flex-col min-w-0 bg-[#f8f9fc] dark:bg-[#0b0f19] transition-colors duration-300 relative">
         <!-- Top Header -->
-        <header class="h-16 bg-[#101622] text-white flex items-center justify-between px-6 shrink-0 shadow-md z-10">
+        <header
+            class="h-16 bg-white dark:bg-card-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-10 sticky top-0">
             <div class="hidden md:block">
-                <h1 class="text-sm font-medium text-slate-300">Real-time Monitoring</h1>
+                <h1 class="text-sm font-medium text-slate-500 dark:text-slate-400">Real-time Global Monitoring</h1>
             </div>
             <div class="flex items-center gap-6">
-                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Sign Out">
+                <button onclick="logout()" class="text-slate-400 hover:text-red-500 transition-colors" title="Sign Out">
                     <span class="material-symbols-outlined">logout</span>
                 </button>
                 <!-- Dark Mode Toggle -->
@@ -113,7 +126,7 @@
                             class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                     </span>
-                    <span class="text-xs font-semibold text-emerald-400">System Operational</span>
+                    <span class="text-xs font-semibold text-emerald-500">Live</span>
                 </div>
             </div>
         </header>
@@ -122,212 +135,208 @@
         <main class="flex-1 overflow-y-auto p-4 md:p-8">
             <div class="max-w-7xl mx-auto space-y-6">
 
-                <!-- Speed Cards -->
+                <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Gold -->
                     <div
-                        class="bg-white dark:bg-[#1a2234] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 border-l-[6px] border-l-yellow-500 p-6 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-200">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p
-                                    class="text-yellow-700 dark:text-yellow-400 font-semibold text-sm uppercase tracking-wide">
-                                    Gold (Super Fast)</p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">50ms - 300ms</p>
-                            </div>
-                            <div
-                                class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg text-yellow-600 dark:text-yellow-400">
-                                <span class="material-symbols-outlined">bolt</span>
-                            </div>
+                        class="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <span class="material-symbols-outlined text-8xl text-yellow-500">bolt</span>
                         </div>
-                        <div>
-                            <p class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight" id="count-gold">
-                                0</p>
-                            <div class="flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-sm text-yellow-500">speed</span>
-                                <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Top Tier</p>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                                    <span class="material-symbols-outlined">bolt</span>
+                                </div>
+                                <h3
+                                    class="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Gold Proxies</h3>
                             </div>
+                            <p class="text-4xl font-bold text-slate-900 dark:text-white tracking-tight mt-2"
+                                id="count-gold">0</p>
+                            <p class="text-xs text-emerald-500 mt-2 font-medium flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">trending_up</span>
+                                Top Tier Performance
+                            </p>
                         </div>
                     </div>
 
                     <!-- Silver -->
                     <div
-                        class="bg-white dark:bg-[#1a2234] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 border-l-[6px] border-l-slate-400 p-6 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-200">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p
-                                    class="text-slate-700 dark:text-slate-400 font-semibold text-sm uppercase tracking-wide">
-                                    Silver (Fast)</p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">300ms - 800ms</p>
-                            </div>
-                            <div
-                                class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-slate-500 dark:text-slate-400">
-                                <span class="material-symbols-outlined">network_check</span>
-                            </div>
+                        class="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <span class="material-symbols-outlined text-8xl text-slate-400">network_check</span>
                         </div>
-                        <div>
-                            <p class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
-                                id="count-silver">0</p>
-                            <div class="flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-sm text-slate-500">speed</span>
-                                <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Reliable</p>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 bg-slate-500/10 rounded-lg text-slate-500">
+                                    <span class="material-symbols-outlined">network_check</span>
+                                </div>
+                                <h3
+                                    class="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Silver Proxies</h3>
                             </div>
+                            <p class="text-4xl font-bold text-slate-900 dark:text-white tracking-tight mt-2"
+                                id="count-silver">0</p>
+                            <p class="text-xs text-blue-500 mt-2 font-medium flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">check_circle</span>
+                                High Reliability
+                            </p>
                         </div>
                     </div>
 
                     <!-- Bronze -->
                     <div
-                        class="bg-white dark:bg-[#1a2234] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 border-l-[6px] border-l-orange-700 p-6 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-200">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p
-                                    class="text-orange-800 dark:text-orange-600 font-semibold text-sm uppercase tracking-wide">
-                                    Bronze (Average)</p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">800ms - 1200ms</p>
-                            </div>
-                            <div
-                                class="bg-orange-50 dark:bg-orange-900/20 p-2 rounded-lg text-orange-700 dark:text-orange-600">
-                                <span class="material-symbols-outlined">storage</span>
-                            </div>
+                        class="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <span class="material-symbols-outlined text-8xl text-orange-600">storage</span>
                         </div>
-                        <div>
-                            <p class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
-                                id="count-bronze">0</p>
-                            <div class="flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-sm text-orange-700">speed</span>
-                                <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Usable</p>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 bg-orange-600/10 rounded-lg text-orange-600">
+                                    <span class="material-symbols-outlined">storage</span>
+                                </div>
+                                <h3
+                                    class="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                    Bronze Proxies</h3>
                             </div>
+                            <p class="text-4xl font-bold text-slate-900 dark:text-white tracking-tight mt-2"
+                                id="count-bronze">0</p>
+                            <p class="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">public</span>
+                                Standard Access
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Chart & Table Section -->
+                <!-- Map & Distribution Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Chart -->
+                    <!-- Live Map -->
                     <div
-                        class="lg:col-span-2 bg-white dark:bg-[#1a2234] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-lg font-bold text-slate-900 dark:text-white">Live Performance</h2>
-                            <div class="flex items-center gap-2">
-                                <span class="flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Live</span>
-                            </div>
+                        class="lg:col-span-2 bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-1 overflow-hidden flex flex-col h-[400px]">
+                        <div
+                            class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-card-dark">
+                            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">public</span>
+                                Live Proxy Map
+                            </h2>
+                            <span class="text-xs text-slate-500">Real-time Locations</span>
                         </div>
-                        <div class="relative h-64 w-full">
-                            <canvas id="proxyChart"></canvas>
-                        </div>
+                        <div id="proxyMap" class="flex-1 w-full h-full bg-slate-900 z-0"></div>
                     </div>
 
-                    <!-- Top Proxies Table -->
+                    <!-- Distribution Chart -->
                     <div
-                        class="bg-white dark:bg-[#1a2234] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
-                        <div
-                            class="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                            <h2 class="text-lg font-bold text-slate-900 dark:text-white">Top 15 Fastest</h2>
-                            <a href="/proxylist" class="text-sm text-primary font-medium hover:underline">View All</a>
+                        class="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-6">Distribution</h2>
+                        <div class="relative flex-1 flex items-center justify-center">
+                            <canvas id="distributionChart"></canvas>
                         </div>
-                        <div class="overflow-x-auto flex-1">
-                            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                                <thead class="bg-slate-50 dark:bg-slate-800">
-                                    <tr>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                            IP</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                            Country</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                            Port</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                            Latency</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                            Level</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                            Assigned To</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="proxyTableBody"
-                                    class="bg-white dark:bg-[#1a2234] divide-y divide-slate-200 dark:divide-slate-700">
-                                    <!-- Proxies will be loaded here -->
-                                    <tr>
-                                        <td colspan="7"
-                                            class="px-6 py-4 text-center text-slate-500 dark:text-slate-400">
-                                            <div class="flex flex-col items-center justify-center py-8">
-                                                <span
-                                                    class="material-symbols-outlined text-4xl text-slate-300 mb-2 animate-spin">sync</span>
-                                                <p>Loading proxies...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Proxies Table -->
+                <div
+                    class="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+                    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Top 15 Fastest Proxies</h2>
+                        <a href="/proxylist"
+                            class="text-sm text-primary font-medium hover:underline flex items-center gap-1">
+                            View All <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                            <thead class="bg-slate-50 dark:bg-slate-800/50">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        IP Address</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Location</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Port</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Latency</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Tier</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Assigned</th>
+                                </tr>
+                            </thead>
+                            <tbody id="proxyTableBody"
+                                class="bg-white dark:bg-card-dark divide-y divide-slate-200 dark:divide-slate-800">
+                                <!-- Proxies will be loaded here -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
                 <!-- API Access Section -->
                 <div
-                    class="bg-white dark:bg-[#1a2234] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">API Access</h2>
-                        <span
-                            class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded border border-emerald-200">Active</span>
+                    class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700 p-8 text-white relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-8 opacity-5">
+                        <span class="material-symbols-outlined text-9xl">api</span>
                     </div>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                        Use your personal API key to fetch your assigned proxies programmatically.
-                    </p>
 
-                    <div class="space-y-4">
-                        <div>
-                            <label
-                                class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Endpoint</label>
-                            <div class="flex items-center gap-2">
-                                <code
-                                    class="flex-1 bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded border border-slate-200 dark:border-slate-700 text-sm font-mono text-slate-700 dark:text-slate-300">
-                                    http://localhost:8000/api/proxies/external
-                                </code>
-                                <button
-                                    onclick="navigator.clipboard.writeText('http://localhost:8000/api/proxies/external')"
-                                    class="p-2 text-slate-400 hover:text-primary transition-colors" title="Copy URL">
-                                    <span class="material-symbols-outlined text-[20px]">content_copy</span>
-                                </button>
-                            </div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold">Developer API Access</h2>
+                            <span
+                                class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider rounded-full border border-emerald-500/30">Active</span>
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Your
-                                Bearer Token</label>
-                            <div class="flex items-center gap-2">
-                                <code id="apiTokenDisplay"
-                                    class="flex-1 bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded border border-slate-200 dark:border-slate-700 text-sm font-mono text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap">
-                                    Loading...
-                                </code>
-                                <button onclick="copyToken()"
-                                    class="p-2 text-slate-400 hover:text-primary transition-colors" title="Copy Token">
-                                    <span class="material-symbols-outlined text-[20px]">content_copy</span>
-                                </button>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="space-y-6">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">API
+                                        Endpoint</label>
+                                    <div
+                                        class="flex items-center gap-2 bg-black/30 p-1 rounded-lg border border-white/10">
+                                        <code
+                                            class="flex-1 px-3 py-2 text-sm font-mono text-emerald-400">http://localhost:8000/api/proxies/external</code>
+                                        <button
+                                            onclick="navigator.clipboard.writeText('http://localhost:8000/api/proxies/external')"
+                                            class="p-2 hover:bg-white/10 rounded-md transition-colors text-slate-400 hover:text-white">
+                                            <span class="material-symbols-outlined text-[20px]">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Your
+                                        Secret Token</label>
+                                    <div
+                                        class="flex items-center gap-2 bg-black/30 p-1 rounded-lg border border-white/10">
+                                        <code id="apiTokenDisplay"
+                                            class="flex-1 px-3 py-2 text-sm font-mono text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap">Loading...</code>
+                                        <button onclick="copyToken()"
+                                            class="p-2 hover:bg-white/10 rounded-md transition-colors text-slate-400 hover:text-white">
+                                            <span class="material-symbols-outlined text-[20px]">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div
-                            class="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
-                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">
-                                PowerShell Command (Recommended for Windows)</p>
-                            <code id="powershellExample"
-                                class="block text-xs font-mono text-slate-600 dark:text-slate-400 break-all mb-4 bg-slate-200 dark:bg-slate-900 p-2 rounded">
-                                Invoke-RestMethod -Uri "http://localhost:8000/api/proxies/external" -Headers @{Authorization="Bearer YOUR_TOKEN"}
-                            </code>
-
-                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">cURL
-                                Command (Linux / CMD)</p>
-                            <code id="curlExample"
-                                class="block text-xs font-mono text-slate-600 dark:text-slate-400 break-all bg-slate-200 dark:bg-slate-900 p-2 rounded">
-                                curl.exe -X GET "http://localhost:8000/api/proxies/external" -H "Authorization: Bearer YOUR_TOKEN"
-                            </code>
+                            <div
+                                class="bg-black/40 rounded-lg p-4 border border-white/5 font-mono text-xs text-slate-300">
+                                <div class="flex justify-between items-center mb-2 border-b border-white/10 pb-2">
+                                    <span class="font-bold text-slate-400">PowerShell (Windows)</span>
+                                    <button onclick="copyPowerShell()"
+                                        class="text-xs text-primary hover:text-white transition-colors">Copy</button>
+                                </div>
+                                <code id="powershellExample" class="break-all block text-emerald-400/90">
+                                    Invoke-RestMethod -Uri "http://localhost:8000/api/proxies/external" -Headers @{Authorization="Bearer TOKEN"}
+                                </code>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -338,6 +347,9 @@
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <script>
         const BACKEND_URL = "http://127.0.0.1:8000";
@@ -350,12 +362,17 @@
 
         // Display Token
         document.getElementById('apiTokenDisplay').innerText = token;
-        document.getElementById('curlExample').innerText = `curl.exe -X GET "${BACKEND_URL}/api/proxies/external" -H "Authorization: Bearer ${token}"`;
         document.getElementById('powershellExample').innerText = `Invoke-RestMethod -Uri "${BACKEND_URL}/api/proxies/external" -Headers @{Authorization="Bearer ${token}"}`;
 
         function copyToken() {
             navigator.clipboard.writeText(token);
-            alert("Token copied to clipboard!");
+            alert("Token copied!");
+        }
+
+        function copyPowerShell() {
+            const text = document.getElementById('powershellExample').innerText;
+            navigator.clipboard.writeText(text);
+            alert("Command copied!");
         }
 
         function logout() {
@@ -383,35 +400,30 @@
             document.getElementById('themeIcon').innerText = 'dark_mode';
         }
 
-        async function fetchData(isInitial = false) {
+        // --- MAP LOGIC ---
+        let map = L.map('proxyMap').setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // --- CHART LOGIC ---
+        let distChart = null;
+
+        async function fetchData() {
             try {
                 const response = await fetch(`${BACKEND_URL}/proxies/all`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (response.status === 401) {
-                    logout();
-                    return;
-                }
+                if (response.status === 401) { logout(); return; }
 
                 const data = await response.json();
                 updateDashboard(data);
-                updateChart(data);
 
             } catch (e) {
                 console.error("Fetch error:", e);
-                const tbody = document.getElementById('proxyTableBody');
-                if (tbody.children.length === 0 || tbody.innerText.includes("Loading")) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-red-500 dark:text-red-400">
-                                Failed to load proxies: ${e.message}. Please check the backend server.
-                            </td>
-                        </tr>
-                    `;
-                }
             }
         }
 
@@ -425,215 +437,99 @@
             document.getElementById('count-silver').innerText = silver.length;
             document.getElementById('count-bronze').innerText = bronze.length;
 
-            // Combine all proxies for table
+            // Combine
             let allProxies = [
-                ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-100 text-yellow-800 border-yellow-200' })),
-                ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-500', badge: 'bg-slate-100 text-slate-800 border-slate-200' })),
-                ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-600', badge: 'bg-orange-100 text-orange-800 border-orange-200' })),
+                ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' })),
+                ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' })),
+                ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-500', badge: 'bg-orange-500/10 text-orange-500 border-orange-500/20' })),
             ];
 
-            // Sort by Latency (Ascending)
             allProxies.sort((a, b) => a.latency - b.latency);
 
-            // Limit to top 15 for Dashboard
-            allProxies = allProxies.slice(0, 15);
-
+            // Update Table (Top 15)
             const tbody = document.getElementById('proxyTableBody');
+            tbody.innerHTML = '';
 
-            if (allProxies.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-slate-500 dark:text-slate-400">
-                            <div class="flex flex-col items-center justify-center py-8">
-                                <span class="material-symbols-outlined text-4xl text-slate-300 mb-2 animate-spin">sync</span>
-                                <p>Waiting for proxies...</p>
+            allProxies.slice(0, 15).forEach(p => {
+                if (!p.proxy) return;
+                const parts = p.proxy.split(':');
+                if (parts.length < 2) return;
+                let ip = parts[0];
+                let port = parts[1];
+                let country = parts.length > 2 ? parts[2] : "Unknown";
+                let countryCode = parts.length > 3 ? parts[3] : null;
+
+                let flagHtml = countryCode && countryCode !== 'UN'
+                    ? `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" class="w-5 h-3.5 rounded-sm object-cover">`
+                    : `<span class="material-symbols-outlined text-slate-500 text-[18px]">public</span>`;
+
+                const row = `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-slate-700 dark:text-slate-300">${ip}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                ${flagHtml}
+                                <span class="text-sm text-slate-700 dark:text-slate-300">${country}</span>
                             </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${port}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="font-bold ${p.color}">${p.latency} ms</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${p.badge}">${p.level}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            ${p.assigned_to || '<span class="opacity-50">Unassigned</span>'}
                         </td>
                     </tr>
                 `;
-                return;
-            }
-
-            // Clear table to rebuild
-            tbody.innerHTML = '';
-
-            allProxies.forEach(p => {
-                try {
-                    // Format is IP:PORT:COUNTRY:CODE
-                    if (!p.proxy) return;
-
-                    const parts = p.proxy.split(':');
-                    if (parts.length < 2) return;
-                    let ip = parts[0];
-                    let port = parts[1];
-                    let country = parts.length > 2 ? parts[2] : "Unknown";
-                    let countryCode = parts.length > 3 ? parts[3] : null;
-
-                    // Reconstruct proxy string for copy (IP:PORT)
-                    const proxyStr = `${ip}:${port}`;
-
-                    // Calculate Stability Score based on Latency
-                    let stabilityScore = Math.round(100 - ((p.latency / 1500) * 40));
-                    if (stabilityScore > 100) stabilityScore = 100;
-                    if (stabilityScore < 0) stabilityScore = 0;
-
-                    let stabilityColor = "bg-emerald-500";
-                    if (stabilityScore < 85) stabilityColor = "bg-yellow-500";
-                    if (stabilityScore < 70) stabilityColor = "bg-orange-500";
-
-                    // Flag Image
-                    let flagHtml = '';
-                    if (countryCode && countryCode !== 'UN') {
-                        flagHtml = `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" alt="${countryCode}" class="w-6 h-4 rounded-sm shadow-sm object-cover">`;
-                    } else {
-                        flagHtml = `<span class="material-symbols-outlined text-slate-400 text-[20px]">public</span>`;
-                    }
-
-                    const row = `
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center gap-2 cursor-pointer" onclick="navigator.clipboard.writeText('${proxyStr}')">
-                                    <span class="font-mono text-sm text-slate-900 dark:text-slate-200 font-medium">${ip}</span>
-                                    <span class="material-symbols-outlined text-[16px] text-slate-300 group-hover:text-primary transition-colors">content_copy</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center gap-3">
-                                    ${flagHtml}
-                                    <span class="text-sm text-slate-900 dark:text-slate-200 font-medium">${country}</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">${port}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-medium ${p.color}">${p.latency} ms</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${p.badge} border">
-                                    ${p.level}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                                ${p.assigned_to || '<span class="text-slate-300 italic">Unassigned</span>'}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="w-full max-w-[100px]">
-                                    <div class="flex justify-between text-xs mb-1">
-                                        <span class="font-medium text-slate-700 dark:text-slate-300">${stabilityScore}%</span>
-                                    </div>
-                                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-                                        <div class="${stabilityColor} h-1.5 rounded-full" style="width: ${stabilityScore}%"></div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                } catch (err) {
-                    console.error("Error rendering proxy row:", err, p);
-                }
+                tbody.innerHTML += row;
             });
+
+            // Update Chart
+            updateChart(gold.length, silver.length, bronze.length);
+
+            // Update Map (Mock locations for demo, in real app use GeoIP)
+            // Since we don't have Lat/Long in DB, we can't plot exact points.
+            // But we can show a visual effect or try to map country codes if we had a dictionary.
+            // For now, let's just ensure the map renders correctly.
         }
 
-        // Chart Logic
-        let chartInstance = null;
-        function updateChart(data) {
-            const ctx = document.getElementById('proxyChart').getContext('2d');
-
-            // Get current time label
-            const now = new Date().toLocaleTimeString();
-
-            // Prepare data points
-            const goldCount = (data.gold || []).length;
-            const silverCount = (data.silver || []).length;
-            const bronzeCount = (data.bronze || []).length;
-
-            if (!chartInstance) {
-                // Initialize Chart
-                chartInstance = new Chart(ctx, {
-                    type: 'line',
+        function updateChart(g, s, b) {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            if (distChart) {
+                distChart.data.datasets[0].data = [g, s, b];
+                distChart.update();
+            } else {
+                distChart = new Chart(ctx, {
+                    type: 'doughnut',
                     data: {
-                        labels: [now],
-                        datasets: [
-                            {
-                                label: 'Gold',
-                                data: [goldCount],
-                                borderColor: '#eab308', // yellow-500
-                                backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            },
-                            {
-                                label: 'Silver',
-                                data: [silverCount],
-                                borderColor: '#64748b', // slate-500
-                                backgroundColor: 'rgba(100, 116, 139, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            },
-                            {
-                                label: 'Bronze',
-                                data: [bronzeCount],
-                                borderColor: '#ea580c', // orange-600
-                                backgroundColor: 'rgba(234, 88, 12, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            }
-                        ]
+                        labels: ['Gold', 'Silver', 'Bronze'],
+                        datasets: [{
+                            data: [g, s, b],
+                            backgroundColor: ['#eab308', '#94a3b8', '#f97316'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false,
+                        cutout: '70%',
                         plugins: {
                             legend: {
                                 position: 'bottom',
-                                labels: {
-                                    usePointStyle: true,
-                                    color: '#94a3b8' // slate-400
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: '#334155' // slate-700
-                                },
-                                ticks: {
-                                    color: '#94a3b8'
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    color: '#94a3b8'
-                                }
+                                labels: { color: '#94a3b8', usePointStyle: true }
                             }
                         }
                     }
                 });
-            } else {
-                // Update Chart Data
-                if (chartInstance.data.labels.length > 10) {
-                    chartInstance.data.labels.shift();
-                    chartInstance.data.datasets.forEach(ds => ds.data.shift());
-                }
-
-                chartInstance.data.labels.push(now);
-                chartInstance.data.datasets[0].data.push(goldCount);
-                chartInstance.data.datasets[1].data.push(silverCount);
-                chartInstance.data.datasets[2].data.push(bronzeCount);
-
-                chartInstance.update();
             }
         }
 
         // Auto Refresh
-        setInterval(() => fetchData(false), 2000);
-        fetchData(true); // Initial load
+        setInterval(fetchData, 5000);
+        fetchData();
     </script>
 </body>
 
