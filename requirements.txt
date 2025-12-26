@@ -1,9 +1,11 @@
 fastapi
 uvicorn
-aiohttp
 requests
-jinja2
 openpyxl
-apscheduler
+jinja2
 passlib[bcrypt]
+psycopg2-binary
+redis
+apscheduler
+aiohttp
 python-multipart

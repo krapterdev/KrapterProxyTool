@@ -1,37 +1,30 @@
 import asyncio
 import aiohttp
 import time
-import sqlite3
+import asyncio
+import aiohttp
+import time
+import psycopg2
 import os
 import logging
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_FILE = os.path.join(BASE_DIR, "proxies.db")
+DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/proxies")
+
+def get_db_connection():
+    return psycopg2.connect(DB_URL)
 
 def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS proxies (
-            proxy TEXT PRIMARY KEY,
-            ip TEXT,
-            port TEXT,
-            country TEXT,
-            country_code TEXT,
-            latency INTEGER,
-            level TEXT,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            assigned_to TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    # Worker might start before DB is ready, but backend handles init mostly.
+    # We'll just try to connect.
+    pass
 
 # Initialize DB
 init_db()
 
 def save_to_db(new_proxies):
     try:
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         count = 0
@@ -47,12 +40,13 @@ def save_to_db(new_proxies):
                 country_code = parts[3] if len(parts) > 3 else "UN"
                 
                 # Use ON CONFLICT to preserve assigned_to
+                # Postgres syntax: ON CONFLICT (proxy) DO UPDATE SET ...
                 cursor.execute('''
                     INSERT INTO proxies (proxy, ip, port, country, country_code, latency, level, last_updated)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    ON CONFLICT(proxy) DO UPDATE SET
-                        latency=excluded.latency,
-                        level=excluded.level,
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (proxy) DO UPDATE SET
+                        latency=EXCLUDED.latency,
+                        level=EXCLUDED.level,
                         last_updated=CURRENT_TIMESTAMP
                 ''', (proxy_str, ip, port, country, country_code, latency, level))
                 count += 1

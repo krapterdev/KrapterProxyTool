@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 from database import get_db_connection
-import sqlite3
+import psycopg2
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -12,22 +12,32 @@ def get_password_hash(password):
 
 def create_user(email, password, proxy_limit=10, is_admin=False):
     conn = get_db_connection()
+    cursor = conn.cursor()
     try:
         hashed_password = get_password_hash(password)
-        conn.execute(
-            "INSERT INTO users (email, password_hash, proxy_limit, is_admin) VALUES (?, ?, ?, ?)", 
+        cursor.execute(
+            "INSERT INTO users (email, password_hash, proxy_limit, is_admin) VALUES (%s, %s, %s, %s)", 
             (email, hashed_password, proxy_limit, is_admin)
         )
         conn.commit()
         print(f"User '{email}' created successfully.")
-    except sqlite3.IntegrityError:
+    except psycopg2.IntegrityError:
+        conn.rollback()
         print(f"User '{email}' already exists.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Error creating user: {e}")
     finally:
         conn.close()
 
 def authenticate_user(email, password):
     conn = get_db_connection()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    # Use RealDictCursor to access columns by name
+    from psycopg2.extras import RealDictCursor
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+    user = cursor.fetchone()
     conn.close()
     
     if not user:
