@@ -247,258 +247,386 @@
                                         <th
                                             class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                             Assigned To</th>
-                                        statusEl.classList.add('text-red-500');
-                                        statusEl.classList.remove('text-slate-400');
-
-                                        // Show error in the table body only if table is empty or has loading state
-                                        const tbody = document.getElementById('proxyTableBody');
-                                        if (tbody.children.length === 0 || tbody.innerText.includes("Loading")) {
-                                        tbody.innerHTML = `
-                                    <tr>
-                                        <td colspan="7" class="px-6 py-4 text-center text-red-500 dark:text-red-400">
-                                            Failed to load proxies: ${e.message}. Please check the backend server.
-                                        </td>
                                     </tr>
-                                    `;
-                                    }
-                                    }
-                                    }
-
-                                    function updateDashboard(data) {
-                                    const gold = data.gold || [];
-                                    const silver = data.silver || [];
-                                    const bronze = data.bronze || [];
-
-                                    // Update Counts
-                                    document.getElementById('count-gold').innerText = gold.length;
-                                    document.getElementById('count-silver').innerText = silver.length;
-                                    document.getElementById('count-bronze').innerText = bronze.length;
-
-                                    // Combine all proxies for table
-                                    let allProxies = [
-                                    ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge:
-                                    'bg-yellow-100
-                                    text-yellow-800 border-yellow-200' })),
-                                    ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-500', badge:
-                                    'bg-slate-100 text-slate-800 border-slate-200' })),
-                                    ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-600', badge:
-                                    'bg-orange-100 text-orange-800 border-orange-200' })),
-                                    ];
-
-                                    // Sort by Latency (Ascending)
-                                    allProxies.sort((a, b) => a.latency - b.latency);
-
-                                    // Limit to top 15 for Dashboard
-                                    allProxies = allProxies.slice(0, 15);
-
-                                    const tbody = document.getElementById('proxyTableBody');
-
-                                    if (allProxies.length === 0) {
-                                    tbody.innerHTML = `
+                                </thead>
+                                <tbody id="proxyTableBody"
+                                    class="bg-white dark:bg-[#1a2234] divide-y divide-slate-200 dark:divide-slate-700">
+                                    <!-- Proxies will be loaded here -->
                                     <tr>
                                         <td colspan="7"
                                             class="px-6 py-4 text-center text-slate-500 dark:text-slate-400">
                                             <div class="flex flex-col items-center justify-center py-8">
                                                 <span
                                                     class="material-symbols-outlined text-4xl text-slate-300 mb-2 animate-spin">sync</span>
-                                                <p>Waiting for proxies...</p>
+                                                <p>Loading proxies...</p>
                                             </div>
                                         </td>
                                     </tr>
-                                    `;
-                                    return;
-                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-                                    // Clear table to rebuild
-                                    tbody.innerHTML = '';
+                <!-- API Access Section -->
+                <div
+                    class="bg-white dark:bg-[#1a2234] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">API Access</h2>
+                        <span
+                            class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded border border-emerald-200">Active</span>
+                    </div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        Use your personal API key to fetch your assigned proxies programmatically.
+                    </p>
 
-                                    allProxies.forEach(p => {
-                                    try {
-                                    // Format is IP:PORT:COUNTRY:CODE
-                                    if (!p.proxy) return;
+                    <div class="space-y-4">
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Endpoint</label>
+                            <div class="flex items-center gap-2">
+                                <code
+                                    class="flex-1 bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded border border-slate-200 dark:border-slate-700 text-sm font-mono text-slate-700 dark:text-slate-300">
+                                    http://localhost:8000/api/proxies/external
+                                </code>
+                                <button
+                                    onclick="navigator.clipboard.writeText('http://localhost:8000/api/proxies/external')"
+                                    class="p-2 text-slate-400 hover:text-primary transition-colors" title="Copy URL">
+                                    <span class="material-symbols-outlined text-[20px]">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
 
-                                    const parts = p.proxy.split(':');
-                                    if (parts.length < 2) return; let ip=parts[0]; let port=parts[1]; let
-                                        country=parts.length> 2 ? parts[2] : "Unknown";
-                                        let countryCode = parts.length > 3 ? parts[3] : null;
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Your
+                                Bearer Token</label>
+                            <div class="flex items-center gap-2">
+                                <code id="apiTokenDisplay"
+                                    class="flex-1 bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded border border-slate-200 dark:border-slate-700 text-sm font-mono text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap">
+                                    Loading...
+                                </code>
+                                <button onclick="copyToken()"
+                                    class="p-2 text-slate-400 hover:text-primary transition-colors" title="Copy Token">
+                                    <span class="material-symbols-outlined text-[20px]">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
 
-                                        // Reconstruct proxy string for copy (IP:PORT)
-                                        const proxyStr = `${ip}:${port}`;
+                        <div
+                            class="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
+                            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">Example
+                                Usage (cURL)</p>
+                            <code id="curlExample"
+                                class="block text-xs font-mono text-slate-600 dark:text-slate-400 break-all">
+                                curl -X GET "http://localhost:8000/api/proxies/external" -H "Authorization: Bearer YOUR_TOKEN"
+                            </code>
+                        </div>
+                    </div>
+                </div>
 
-                                        // Calculate Stability Score based on Latency
-                                        let stabilityScore = Math.round(100 - ((p.latency / 1500) * 40));
-                                        if (stabilityScore > 100) stabilityScore = 100;
-                                        if (stabilityScore < 0) stabilityScore=0; let stabilityColor="bg-emerald-500" ;
-                                            if (stabilityScore < 85) stabilityColor="bg-yellow-500" ; if (stabilityScore
-                                            < 70) stabilityColor="bg-orange-500" ; // Flag Image let flagHtml='' ; if
-                                            (countryCode && countryCode !=='UN' ) { flagHtml=`<img
-                                            src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png"
-                                            alt="${countryCode}" class="w-6 h-4 rounded-sm shadow-sm object-cover">`;
-                                            } else {
-                                            flagHtml = `<span
-                                                class="material-symbols-outlined text-slate-400 text-[20px]">public</span>`;
-                                            }
+            </div>
+        </main>
+    </div>
 
-                                            const row = `
-                                            <tr
-                                                class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex items-center gap-2 cursor-pointer"
-                                                        onclick="navigator.clipboard.writeText('${proxyStr}')">
-                                                        <span
-                                                            class="font-mono text-sm text-slate-900 dark:text-slate-200 font-medium">${ip}</span>
-                                                        <span
-                                                            class="material-symbols-outlined text-[16px] text-slate-300 group-hover:text-primary transition-colors">content_copy</span>
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex items-center gap-3">
-                                                        ${flagHtml}
-                                                        <span
-                                                            class="text-sm text-slate-900 dark:text-slate-200 font-medium">${country}</span>
-                                                    </div>
-                                                </td>
-                                                <td
-                                                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
-                                                    ${port}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="text-sm font-medium ${p.color}">${p.latency}
-                                                            ms</span>
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <span
-                                                        class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${p.badge} border">
-                                                        ${p.level}
-                                                    </span>
-                                                </td>
-                                                <td
-                                                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                                                    ${p.assigned_to || '<span
-                                                        class="text-slate-300 italic">Unassigned</span>'}
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="w-full max-w-[100px]">
-                                                        <div class="flex justify-between text-xs mb-1">
-                                                            <span
-                                                                class="font-medium text-slate-700 dark:text-slate-300">${stabilityScore}%</span>
-                                                        </div>
-                                                        <div
-                                                            class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-                                                            <div class="${stabilityColor} h-1.5 rounded-full"
-                                                                style="width: ${stabilityScore}%"></div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            `;
-                                            tbody.innerHTML += row;
-                                            } catch (err) {
-                                            console.error("Error rendering proxy row:", err, p);
-                                            }
-                                            });
-                                            }
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-                                            // Chart Logic
-                                            let chartInstance = null;
-                                            function updateChart(data) {
-                                            const ctx = document.getElementById('proxyChart').getContext('2d');
+    <script>
+        const BACKEND_URL = "http://127.0.0.1:8000";
 
-                                            // Get current time label
-                                            const now = new Date().toLocaleTimeString();
+        // Check Auth
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
 
-                                            // Prepare data points
-                                            const goldCount = (data.gold || []).length;
-                                            const silverCount = (data.silver || []).length;
-                                            const bronzeCount = (data.bronze || []).length;
+        // Display Token
+        document.getElementById('apiTokenDisplay').innerText = token;
+        document.getElementById('curlExample').innerText = `curl -X GET "${BACKEND_URL}/api/proxies/external" -H "Authorization: Bearer ${token}"`;
 
-                                            if (!chartInstance) {
-                                            // Initialize Chart
-                                            chartInstance = new Chart(ctx, {
-                                            type: 'line',
-                                            data: {
-                                            labels: [now],
-                                            datasets: [
-                                            {
-                                            label: 'Gold',
-                                            data: [goldCount],
-                                            borderColor: '#eab308', // yellow-500
-                                            backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                                            tension: 0.4,
-                                            fill: true
-                                            },
-                                            {
-                                            label: 'Silver',
-                                            data: [silverCount],
-                                            borderColor: '#64748b', // slate-500
-                                            backgroundColor: 'rgba(100, 116, 139, 0.1)',
-                                            tension: 0.4,
-                                            fill: true
-                                            },
-                                            {
-                                            label: 'Bronze',
-                                            data: [bronzeCount],
-                                            borderColor: '#ea580c', // orange-600
-                                            backgroundColor: 'rgba(234, 88, 12, 0.1)',
-                                            tension: 0.4,
-                                            fill: true
-                                            }
-                                            ]
-                                            },
-                                            options: {
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            plugins: {
-                                            legend: {
-                                            position: 'bottom',
-                                            labels: {
-                                            usePointStyle: true,
-                                            color: '#94a3b8' // slate-400
-                                            }
-                                            }
-                                            },
-                                            scales: {
-                                            y: {
-                                            beginAtZero: true,
-                                            grid: {
-                                            color: '#334155' // slate-700
-                                            },
-                                            ticks: {
-                                            color: '#94a3b8'
-                                            }
-                                            },
-                                            x: {
-                                            grid: {
-                                            display: false
-                                            },
-                                            ticks: {
-                                            color: '#94a3b8'
-                                            }
-                                            }
-                                            }
-                                            }
-                                            });
-                                            } else {
-                                            // Update Chart Data
-                                            if (chartInstance.data.labels.length > 10) {
-                                            chartInstance.data.labels.shift();
-                                            chartInstance.data.datasets.forEach(ds => ds.data.shift());
-                                            }
+        function copyToken() {
+            navigator.clipboard.writeText(token);
+            alert("Token copied to clipboard!");
+        }
 
-                                            chartInstance.data.labels.push(now);
-                                            chartInstance.data.datasets[0].data.push(goldCount);
-                                            chartInstance.data.datasets[1].data.push(silverCount);
-                                            chartInstance.data.datasets[2].data.push(bronzeCount);
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
 
-                                            chartInstance.update();
-                                            }
-                                            }
+        // Dark Mode Logic
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                document.getElementById('themeIcon').innerText = 'dark_mode';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                document.getElementById('themeIcon').innerText = 'light_mode';
+            }
+        }
 
-                                            // Auto Refresh
-                                            setInterval(() => fetchData(false), 2000);
-                                            fetchData(true); // Initial load
-                                            </script>
+        // Initialize Theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('themeIcon').innerText = 'dark_mode';
+        }
+
+        async function fetchData(isInitial = false) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/proxies/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const data = await response.json();
+                updateDashboard(data);
+                updateChart(data);
+
+            } catch (e) {
+                console.error("Fetch error:", e);
+                const tbody = document.getElementById('proxyTableBody');
+                if (tbody.children.length === 0 || tbody.innerText.includes("Loading")) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 text-center text-red-500 dark:text-red-400">
+                                Failed to load proxies: ${e.message}. Please check the backend server.
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        }
+
+        function updateDashboard(data) {
+            const gold = data.gold || [];
+            const silver = data.silver || [];
+            const bronze = data.bronze || [];
+
+            // Update Counts
+            document.getElementById('count-gold').innerText = gold.length;
+            document.getElementById('count-silver').innerText = silver.length;
+            document.getElementById('count-bronze').innerText = bronze.length;
+
+            // Combine all proxies for table
+            let allProxies = [
+                ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-100 text-yellow-800 border-yellow-200' })),
+                ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-500', badge: 'bg-slate-100 text-slate-800 border-slate-200' })),
+                ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-600', badge: 'bg-orange-100 text-orange-800 border-orange-200' })),
+            ];
+
+            // Sort by Latency (Ascending)
+            allProxies.sort((a, b) => a.latency - b.latency);
+
+            // Limit to top 15 for Dashboard
+            allProxies = allProxies.slice(0, 15);
+
+            const tbody = document.getElementById('proxyTableBody');
+
+            if (allProxies.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-slate-500 dark:text-slate-400">
+                            <div class="flex flex-col items-center justify-center py-8">
+                                <span class="material-symbols-outlined text-4xl text-slate-300 mb-2 animate-spin">sync</span>
+                                <p>Waiting for proxies...</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Clear table to rebuild
+            tbody.innerHTML = '';
+
+            allProxies.forEach(p => {
+                try {
+                    // Format is IP:PORT:COUNTRY:CODE
+                    if (!p.proxy) return;
+
+                    const parts = p.proxy.split(':');
+                    if (parts.length < 2) return;
+                    let ip = parts[0];
+                    let port = parts[1];
+                    let country = parts.length > 2 ? parts[2] : "Unknown";
+                    let countryCode = parts.length > 3 ? parts[3] : null;
+
+                    // Reconstruct proxy string for copy (IP:PORT)
+                    const proxyStr = `${ip}:${port}`;
+
+                    // Calculate Stability Score based on Latency
+                    let stabilityScore = Math.round(100 - ((p.latency / 1500) * 40));
+                    if (stabilityScore > 100) stabilityScore = 100;
+                    if (stabilityScore < 0) stabilityScore = 0;
+
+                    let stabilityColor = "bg-emerald-500";
+                    if (stabilityScore < 85) stabilityColor = "bg-yellow-500";
+                    if (stabilityScore < 70) stabilityColor = "bg-orange-500";
+
+                    // Flag Image
+                    let flagHtml = '';
+                    if (countryCode && countryCode !== 'UN') {
+                        flagHtml = `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" alt="${countryCode}" class="w-6 h-4 rounded-sm shadow-sm object-cover">`;
+                    } else {
+                        flagHtml = `<span class="material-symbols-outlined text-slate-400 text-[20px]">public</span>`;
+                    }
+
+                    const row = `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-2 cursor-pointer" onclick="navigator.clipboard.writeText('${proxyStr}')">
+                                    <span class="font-mono text-sm text-slate-900 dark:text-slate-200 font-medium">${ip}</span>
+                                    <span class="material-symbols-outlined text-[16px] text-slate-300 group-hover:text-primary transition-colors">content_copy</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-3">
+                                    ${flagHtml}
+                                    <span class="text-sm text-slate-900 dark:text-slate-200 font-medium">${country}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">${port}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium ${p.color}">${p.latency} ms</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${p.badge} border">
+                                    ${p.level}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                                ${p.assigned_to || '<span class="text-slate-300 italic">Unassigned</span>'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="w-full max-w-[100px]">
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-medium text-slate-700 dark:text-slate-300">${stabilityScore}%</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+                                        <div class="${stabilityColor} h-1.5 rounded-full" style="width: ${stabilityScore}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                } catch (err) {
+                    console.error("Error rendering proxy row:", err, p);
+                }
+            });
+        }
+
+        // Chart Logic
+        let chartInstance = null;
+        function updateChart(data) {
+            const ctx = document.getElementById('proxyChart').getContext('2d');
+
+            // Get current time label
+            const now = new Date().toLocaleTimeString();
+
+            // Prepare data points
+            const goldCount = (data.gold || []).length;
+            const silverCount = (data.silver || []).length;
+            const bronzeCount = (data.bronze || []).length;
+
+            if (!chartInstance) {
+                // Initialize Chart
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [now],
+                        datasets: [
+                            {
+                                label: 'Gold',
+                                data: [goldCount],
+                                borderColor: '#eab308', // yellow-500
+                                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'Silver',
+                                data: [silverCount],
+                                borderColor: '#64748b', // slate-500
+                                backgroundColor: 'rgba(100, 116, 139, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'Bronze',
+                                data: [bronzeCount],
+                                borderColor: '#ea580c', // orange-600
+                                backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    color: '#94a3b8' // slate-400
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#334155' // slate-700
+                                },
+                                ticks: {
+                                    color: '#94a3b8'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#94a3b8'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Update Chart Data
+                if (chartInstance.data.labels.length > 10) {
+                    chartInstance.data.labels.shift();
+                    chartInstance.data.datasets.forEach(ds => ds.data.shift());
+                }
+
+                chartInstance.data.labels.push(now);
+                chartInstance.data.datasets[0].data.push(goldCount);
+                chartInstance.data.datasets[1].data.push(silverCount);
+                chartInstance.data.datasets[2].data.push(bronzeCount);
+
+                chartInstance.update();
+            }
+        }
+
+        // Auto Refresh
+        setInterval(() => fetchData(false), 2000);
+        fetchData(true); // Initial load
+    </script>
 </body>
 
 </html>
