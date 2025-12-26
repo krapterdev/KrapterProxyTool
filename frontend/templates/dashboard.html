@@ -247,69 +247,13 @@
                                         <th
                                             class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                             Assigned To</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                            Stability</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="proxyTableBody"
-                                    class="bg-white dark:bg-[#1a2234] divide-y divide-slate-200 dark:divide-slate-700">
-                                    <!-- Rows will be injected here -->
-                                    <tr>
-                                        <td colspan="7"
-                                            class="px-6 py-4 text-center text-slate-500 dark:text-slate-400">
-                                            Loading proxies...
-                                        </td>
-                                    </tr>
-                                    }
+                                        statusEl.classList.add('text-red-500');
+                                        statusEl.classList.remove('text-slate-400');
 
-                                    // Initialize Theme
-                                    if (localStorage.getItem('theme') === 'light') {
-                                    document.documentElement.classList.remove('dark');
-                                    document.getElementById('themeIcon').innerText = 'dark_mode';
-                                    }
-
-                                    const BACKEND_URL = "http://127.0.0.1:8000";
-
-                                    // Fetch Data
-                                    async function fetchData(isManual = false) {
-                                    const statusEl = document.getElementById('lastUpdated');
-                                    try {
-                                    const res = await fetch(`${BACKEND_URL}/proxies/all`, {
-                                    headers: {
-                                    'Authorization': `Bearer ${token}`
-                                    }
-                                    });
-
-                                    if (res.status === 401) {
-                                    logout(); // Token expired or invalid
-                                    return;
-                                    }
-
-                                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-                                    const data = await res.json();
-                                    // console.log("Fetched data:", data);
-
-                                    updateDashboard(data);
-                                    updateChart(data);
-
-                                    if (isManual) {
-                                    const now = new Date().toLocaleTimeString();
-                                    statusEl.innerText = now;
-                                    statusEl.classList.remove('text-red-500');
-                                    statusEl.classList.add('text-slate-400');
-                                    }
-                                    } catch (e) {
-                                    console.error("Fetch error:", e);
-                                    statusEl.innerText = "Error: " + e.message;
-                                    statusEl.classList.add('text-red-500');
-                                    statusEl.classList.remove('text-slate-400');
-
-                                    // Show error in the table body only if table is empty or has loading state
-                                    const tbody = document.getElementById('proxyTableBody');
-                                    if (tbody.children.length === 0 || tbody.innerText.includes("Loading")) {
-                                    tbody.innerHTML = `
+                                        // Show error in the table body only if table is empty or has loading state
+                                        const tbody = document.getElementById('proxyTableBody');
+                                        if (tbody.children.length === 0 || tbody.innerText.includes("Loading")) {
+                                        tbody.innerHTML = `
                                     <tr>
                                         <td colspan="7" class="px-6 py-4 text-center text-red-500 dark:text-red-400">
                                             Failed to load proxies: ${e.message}. Please check the backend server.
