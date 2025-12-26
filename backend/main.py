@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from router import router
-from auth import authenticate_user, tokens, oauth2_scheme, get_current_user_obj
+from auth import authenticate_user, tokens, oauth2_scheme, get_current_user_obj, init_auth
 import secrets
 
 app = FastAPI(title="Krapter Proxy Tool - Backend")
@@ -15,6 +15,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize DB and Auth
+    print("Starting up... Initializing Auth...")
+    try:
+        init_auth()
+    except Exception as e:
+        print(f"Error during startup auth init: {e}")
 
 @app.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
