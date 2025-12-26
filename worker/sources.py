@@ -43,11 +43,38 @@ def get_proxies():
         except Exception:
             pass
 
-        # Source 4: Raw List (GitHub)
+        # Source 4: Raw List (GitHub - TheSpeedX)
         try:
             r4 = requests.get("https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt", timeout=10)
             if r4.status_code == 200:
                 lines = r4.text.splitlines()
+                proxies.extend([x.strip() for x in lines if x.strip()])
+        except Exception:
+            pass
+
+        # Source 5: Raw List (GitHub - Monosans)
+        try:
+            r5 = requests.get("https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt", timeout=10)
+            if r5.status_code == 200:
+                lines = r5.text.splitlines()
+                proxies.extend([x.strip() for x in lines if x.strip()])
+        except Exception:
+            pass
+
+        # Source 6: Raw List (GitHub - shiftytr)
+        try:
+            r6 = requests.get("https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt", timeout=10)
+            if r6.status_code == 200:
+                lines = r6.text.splitlines()
+                proxies.extend([x.strip() for x in lines if x.strip()])
+        except Exception:
+            pass
+
+        # Source 7: Raw List (GitHub - hookzof)
+        try:
+            r7 = requests.get("https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt", timeout=10)
+            if r7.status_code == 200:
+                lines = r7.text.splitlines()
                 proxies.extend([x.strip() for x in lines if x.strip()])
         except Exception:
             pass
