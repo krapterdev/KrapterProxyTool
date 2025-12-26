@@ -31,6 +31,7 @@ def create_user(email, password, proxy_limit=10, is_admin=False):
         conn.close()
 
 def authenticate_user(email, password):
+    print(f"DEBUG: Authenticating user {email}")
     conn = get_db_connection()
     # Use RealDictCursor to access columns by name
     from psycopg2.extras import RealDictCursor
@@ -41,9 +42,12 @@ def authenticate_user(email, password):
     conn.close()
     
     if not user:
+        print(f"DEBUG: User {email} not found in DB.")
         return False
     if not verify_password(password, user["password_hash"]):
+        print(f"DEBUG: Password verification failed for {email}.")
         return False
+    print(f"DEBUG: User {email} authenticated successfully.")
     return user
 
 # Create default admin user if not exists

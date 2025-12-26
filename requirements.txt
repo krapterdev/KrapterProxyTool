@@ -3,7 +3,8 @@ uvicorn
 requests
 openpyxl
 jinja2
-passlib[bcrypt]
+passlib
+bcrypt==3.2.0
 psycopg2-binary
 redis
 apscheduler
