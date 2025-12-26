@@ -20,6 +20,10 @@ async def read_proxylist(request: Request):
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+@app.get("/signup", response_class=HTMLResponse)
+async def signup_page(request: Request):
+    return templates.TemplateResponse("signup.html", {"request": request})
+
 @app.get("/proxies/all")
 async def get_proxies():
     # This seems to be a frontend proxy to backend? Or just unused?
