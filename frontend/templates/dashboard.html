@@ -241,10 +241,16 @@
                     class="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
                     <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Top 15 Fastest Proxies</h2>
-                        <a href="/proxylist"
-                            class="text-sm text-primary font-medium hover:underline flex items-center gap-1">
-                            View All <span class="material-symbols-outlined text-sm">arrow_forward</span>
-                        </a>
+                        <div class="flex items-center gap-4">
+                            <button onclick="exportToExcel()"
+                                class="text-sm text-emerald-500 font-medium hover:text-emerald-400 flex items-center gap-1 transition-colors">
+                                <span class="material-symbols-outlined text-sm">download</span> Export Excel
+                            </button>
+                            <a href="/proxylist"
+                                class="text-sm text-primary font-medium hover:underline flex items-center gap-1">
+                                View All <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                            </a>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
@@ -265,9 +271,6 @@
                                     <th
                                         class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                         Tier</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        Assigned</th>
                                 </tr>
                             </thead>
                             <tbody id="proxyTableBody"
@@ -350,6 +353,8 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
     <script>
         const BACKEND_URL = "http://127.0.0.1:8000";
@@ -408,8 +413,11 @@
             maxZoom: 19
         }).addTo(map);
 
+        let markers = L.layerGroup().addTo(map);
+
         // --- CHART LOGIC ---
         let distChart = null;
+        let allProxiesCache = [];
 
         async function fetchData() {
             try {
@@ -443,6 +451,8 @@
                 ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' })),
                 ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-500', badge: 'bg-orange-500/10 text-orange-500 border-orange-500/20' })),
             ];
+
+            allProxiesCache = allProxies; // Cache for export
 
             allProxies.sort((a, b) => a.latency - b.latency);
 
@@ -479,9 +489,6 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${p.badge}">${p.level}</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            ${p.assigned_to || '<span class="opacity-50">Unassigned</span>'}
-                        </td>
                     </tr>
                 `;
                 tbody.innerHTML += row;
@@ -490,10 +497,21 @@
             // Update Chart
             updateChart(gold.length, silver.length, bronze.length);
 
-            // Update Map (Mock locations for demo, in real app use GeoIP)
-            // Since we don't have Lat/Long in DB, we can't plot exact points.
-            // But we can show a visual effect or try to map country codes if we had a dictionary.
-            // For now, let's just ensure the map renders correctly.
+            // Update Map
+            markers.clearLayers();
+            allProxies.forEach(p => {
+                if (p.lat && p.lon) {
+                    let color = p.level === 'Gold' ? '#eab308' : (p.level === 'Silver' ? '#94a3b8' : '#f97316');
+                    L.circleMarker([p.lat, p.lon], {
+                        radius: 4,
+                        fillColor: color,
+                        color: "#000",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).bindPopup(`<b>${p.proxy.split(':')[0]}</b><br>${p.latency}ms`).addTo(markers);
+                }
+            });
         }
 
         function updateChart(g, s, b) {
@@ -525,6 +543,30 @@
                     }
                 });
             }
+        }
+
+        function exportToExcel() {
+            if (allProxiesCache.length === 0) {
+                alert("No proxies to export!");
+                return;
+            }
+
+            // Prepare data for export
+            const exportData = allProxiesCache.map(p => {
+                const parts = p.proxy.split(':');
+                return {
+                    IP: parts[0],
+                    Port: parts[1],
+                    Country: parts.length > 2 ? parts[2] : "Unknown",
+                    Latency_ms: p.latency,
+                    Level: p.level
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Proxies");
+            XLSX.writeFile(wb, "ProxyHub_Export.xlsx");
         }
 
         // Auto Refresh
