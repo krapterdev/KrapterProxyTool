@@ -102,6 +102,12 @@ async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends(g
 async def get_external_proxies(limit: int = 10, current_user: dict = Depends(get_current_user_obj)):
     # Ensure they don't exceed their assigned limit
     user_limit = current_user["proxy_limit"]
+    email = current_user["email"]
+    
+    # Ensure proxies are assigned (even for API users)
+    if not current_user["is_admin"]:
+        redis_client.assign_proxies(email, user_limit)
+        
     actual_limit = min(limit, user_limit)
     
     all_data = redis_client.get_all_proxies(limit=actual_limit)

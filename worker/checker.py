@@ -109,9 +109,11 @@ async def process_proxies(proxies):
             
             # Save batch to DB
             if any(batch_results.values()):
+                print(f"Saving batch of {len(batch_results['gold']) + len(batch_results['silver']) + len(batch_results['bronze'])} proxies to DB...")
                 save_to_db(batch_results)
             else:
                 logging.info("No valid proxies in this chunk.")
+                print("No valid proxies in this chunk (all failed or too slow).")
 
 def run_checker(proxies):
     # Limit to 1000 proxies for testing if the list is huge

@@ -25,9 +25,13 @@ def job():
     print("Starting proxy check job...")
     try:
         # 1. Fetch
+        print("Fetching proxies from sources...")
         proxies = get_proxies()
         logging.info(f"Fetched {len(proxies)} proxies.")
         print(f"Fetched {len(proxies)} proxies.")
+        
+        if not proxies:
+            print("⚠️ No proxies fetched! Check network connection or sources.")
         
         # 2. Check & Save to DB
         run_checker(proxies)
