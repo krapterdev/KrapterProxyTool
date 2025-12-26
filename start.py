@@ -72,7 +72,7 @@ def main():
         # 1. Start Backend
         print(f"\n[1/3] Starting Backend (Port {BACKEND_PORT})...")
         p_backend = run_service(
-            [python_cmd, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", BACKEND_PORT, "--reload"],
+            [python_cmd, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", BACKEND_PORT, "--reload", "--log-level", "warning"],
             cwd="backend"
         )
         processes.append(p_backend)
@@ -89,7 +89,7 @@ def main():
         # 3. Start Frontend
         print(f"\n[3/3] Starting Frontend (Port {FRONTEND_PORT})...")
         p_frontend = run_service(
-            [python_cmd, "-m", "uvicorn", "app:app", "--host", "127.0.0.1", "--port", FRONTEND_PORT, "--reload"],
+            [python_cmd, "-m", "uvicorn", "app:app", "--host", "127.0.0.1", "--port", FRONTEND_PORT, "--reload", "--log-level", "warning"],
             cwd="frontend"
         )
         processes.append(p_frontend)

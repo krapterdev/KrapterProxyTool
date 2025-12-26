@@ -68,12 +68,27 @@ def export_proxies_excel():
     
     return Response(content=buffer.getvalue(), headers=headers, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-@router.post("/debug/inject")
-def inject_test_data():
+@router.get("/api/history")
+def get_history():
     """
-    Manually inject a test proxy to verify the system.
+    Get historical proxy counts for the graph.
     """
-    print("DEBUG: Injecting test data via API...")
-    # This needs to be updated for SQLite if we want to keep it, but it's debug only.
-    # redis_client.client.zadd("proxies:level1", {"TEST_PROXY:1234": 100})
-    return {"message": "Debug injection disabled for SQLite migration"}
+    return redis_client.get_history()
+
+@router.get("/api/proxies/external")
+def get_external_proxies():
+    """
+    Get a plain text list of all proxies (IP:Port) for external use.
+    """
+    all_proxies = redis_client.get_all_proxies()
+    proxy_list = []
+    
+    for level in ["gold", "silver", "bronze"]:
+        for p in all_proxies[level]:
+            # p["proxy"] is "IP:PORT:COUNTRY:CODE"
+            # We just want IP:PORT
+            parts = p["proxy"].split(":")
+            if len(parts) >= 2:
+                proxy_list.append(f"{parts[0]}:{parts[1]}")
+                
+    return Response(content="\n".join(proxy_list), media_type="text/plain")

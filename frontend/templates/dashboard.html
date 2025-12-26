@@ -381,71 +381,79 @@
             tbody.innerHTML = '';
 
             allProxies.forEach(p => {
-                // Format is IP:PORT:COUNTRY:CODE
-                const parts = p.proxy.split(':');
-                let ip = parts[0];
-                let port = parts[1];
-                let country = parts.length > 2 ? parts[2] : "Unknown";
-                let countryCode = parts.length > 3 ? parts[3] : null;
+                try {
+                    // Format is IP:PORT:COUNTRY:CODE
+                    if (!p.proxy) return;
 
-                // Reconstruct proxy string for copy (IP:PORT)
-                const proxyStr = `${ip}:${port}`;
+                    const parts = p.proxy.split(':');
+                    if (parts.length < 2) return;
 
-                // Calculate Stability Score based on Latency
-                let stabilityScore = Math.round(100 - ((p.latency / 1500) * 40));
-                if (stabilityScore > 100) stabilityScore = 100;
-                if (stabilityScore < 0) stabilityScore = 0;
+                    let ip = parts[0];
+                    let port = parts[1];
+                    let country = parts.length > 2 ? parts[2] : "Unknown";
+                    let countryCode = parts.length > 3 ? parts[3] : null;
 
-                let stabilityColor = "bg-emerald-500";
-                if (stabilityScore < 85) stabilityColor = "bg-yellow-500";
-                if (stabilityScore < 70) stabilityColor = "bg-orange-500";
+                    // Reconstruct proxy string for copy (IP:PORT)
+                    const proxyStr = `${ip}:${port}`;
 
-                // Flag Image
-                let flagHtml = '';
-                if (countryCode && countryCode !== 'UN') {
-                    flagHtml = `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" alt="${countryCode}" class="w-6 h-4 rounded-sm shadow-sm object-cover">`;
-                } else {
-                    flagHtml = `<span class="material-symbols-outlined text-slate-400 text-[20px]">public</span>`;
+                    // Calculate Stability Score based on Latency
+                    let stabilityScore = Math.round(100 - ((p.latency / 1500) * 40));
+                    if (stabilityScore > 100) stabilityScore = 100;
+                    if (stabilityScore < 0) stabilityScore = 0;
+
+                    let stabilityColor = "bg-emerald-500";
+                    if (stabilityScore < 85) stabilityColor = "bg-yellow-500";
+                    if (stabilityScore < 70) stabilityColor = "bg-orange-500";
+
+                    // Flag Image
+                    let flagHtml = '';
+                    if (countryCode && countryCode !== 'UN') {
+                        flagHtml = `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" alt="${countryCode}" class="w-6 h-4 rounded-sm shadow-sm object-cover">`;
+                    } else {
+                        flagHtml = `<span class="material-symbols-outlined text-slate-400 text-[20px]">public</span>`;
+                    }
+
+                    const row = `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2 cursor-pointer" onclick="navigator.clipboard.writeText('${proxyStr}')">
+                                <span class="font-mono text-sm text-slate-900 dark:text-slate-200 font-medium">${ip}</span>
+                                <span class="material-symbols-outlined text-[16px] text-slate-300 group-hover:text-primary transition-colors">content_copy</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                                ${flagHtml}
+                                <span class="text-sm text-slate-900 dark:text-slate-200 font-medium">${country}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">${port}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium ${p.color}">${p.latency} ms</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${p.badge} border">
+                                ${p.level}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="w-full max-w-[100px]">
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="font-medium text-slate-700 dark:text-slate-300">${stabilityScore}%</span>
+                                </div>
+                                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+                                    <div class="${stabilityColor} h-1.5 rounded-full" style="width: ${stabilityScore}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    `;
+                    tbody.innerHTML += row;
+                } catch (err) {
+                    console.error("Error rendering proxy row:", err, p);
                 }
-
-                const row = `
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-2 cursor-pointer" onclick="navigator.clipboard.writeText('${proxyStr}')">
-                            <span class="font-mono text-sm text-slate-900 dark:text-slate-200 font-medium">${ip}</span>
-                            <span class="material-symbols-outlined text-[16px] text-slate-300 group-hover:text-primary transition-colors">content_copy</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            ${flagHtml}
-                            <span class="text-sm text-slate-900 dark:text-slate-200 font-medium">${country}</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">${port}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-medium ${p.color}">${p.latency} ms</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${p.badge} border">
-                            ${p.level}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="w-full max-w-[100px]">
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="font-medium text-slate-700 dark:text-slate-300">${stabilityScore}%</span>
-                            </div>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-                                <div class="${stabilityColor} h-1.5 rounded-full" style="width: ${stabilityScore}%"></div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                `;
-                tbody.innerHTML += row;
             });
         }
 

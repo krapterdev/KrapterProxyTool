@@ -5,3 +5,5 @@ requests
 jinja2
 openpyxl
 apscheduler
+passlib[bcrypt]
+python-multipart

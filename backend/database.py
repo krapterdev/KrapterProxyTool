@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, "proxies.db")
 
 def get_db_connection():
@@ -11,18 +11,40 @@ def get_db_connection():
 
 def init_db():
     conn = get_db_connection()
-    conn.execute('''
+    cursor = conn.cursor()
+    
+    # Proxies table
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS proxies (
             proxy TEXT PRIMARY KEY,
-            ip TEXT,
-            port TEXT,
+            latency INTEGER,
             country TEXT,
             country_code TEXT,
-            latency INTEGER,
             level TEXT,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Users table for Authentication
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL
+        )
+    ''')
+
+    # History table for Graph
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS proxy_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            gold_count INTEGER DEFAULT 0,
+            silver_count INTEGER DEFAULT 0,
+            bronze_count INTEGER DEFAULT 0
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -36,13 +58,9 @@ class SQLiteClient:
         rows = cursor.fetchall()
         conn.close()
         
-        # Format to match expected output
         return [
             {
-                "proxy": row["proxy"], # "IP:PORT:COUNTRY:CODE" or just "IP:PORT"? Let's store full string in 'proxy' col for compatibility or reconstruct it.
-                # Actually, let's store the full "IP:PORT:COUNTRY:CODE" string in the 'proxy' column to match previous behavior, 
-                # OR reconstruct it. The frontend expects "proxy" key to have the full string.
-                # Let's ensure the worker saves it as "IP:PORT:COUNTRY:CODE".
+                "proxy": row["proxy"],
                 "latency": row["latency"]
             }
             for row in rows
@@ -71,5 +89,25 @@ class SQLiteClient:
         rows = cursor.fetchall()
         conn.close()
         return rows
+
+    def save_history(self, timestamp, gold, silver, bronze):
+        """Save a snapshot of proxy counts to history"""
+        conn = get_db_connection()
+        conn.execute(
+            "INSERT INTO proxy_history (timestamp, gold_count, silver_count, bronze_count) VALUES (?, ?, ?, ?)",
+            (timestamp, gold, silver, bronze)
+        )
+        conn.commit()
+        conn.close()
+
+    def get_history(self, limit=20):
+        """Get recent history for the graph"""
+        conn = get_db_connection()
+        cursor = conn.execute("SELECT * FROM proxy_history ORDER BY id DESC LIMIT ?", (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Return in reverse order (oldest first) for the graph
+        return [dict(row) for row in reversed(rows)]
 
 redis_client = SQLiteClient()
