@@ -77,12 +77,12 @@ def save_to_db(new_proxies):
                 # Use ON CONFLICT to preserve assigned_to
                 # Postgres syntax: ON CONFLICT (proxy) DO UPDATE SET ...
                 cursor.execute('''
-                    INSERT INTO proxies (proxy, ip, port, country, country_code, latency, level, last_updated)
+                    INSERT INTO proxies (proxy, ip, port, country, country_code, latency, level, last_checked)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                     ON CONFLICT (proxy) DO UPDATE SET
                         latency=EXCLUDED.latency,
                         level=EXCLUDED.level,
-                        last_updated=CURRENT_TIMESTAMP
+                        last_checked=CURRENT_TIMESTAMP
                 ''', (proxy_str, ip, port, country, country_code, latency, level))
                 count += 1
                 
