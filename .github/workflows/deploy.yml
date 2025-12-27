@@ -1,0 +1,43 @@
+name: Deploy Proxy Tool
+
+on:
+  push:
+    branches: [ "main" ]  # Jab code push hoga tab chalega
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # Ye tumhare Ubuntu VM ko target karega
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Build Docker Image
+      run: |
+        # Code se nayi image banao
+        docker build -t proxy-tool-image .
+
+    - name: Stop Old Container
+      run: |
+        # Purana container roko (agar chal raha hai)
+        docker stop proxy-tool-container || true
+        docker rm proxy-tool-container || true
+
+    - name: Run New Container
+      run: |
+        # Naya container chalao (Data save karne ke sath)
+        docker run -d \
+          --name proxy-tool-container \
+          --restart always \
+          --network host \
+          -v proxy_data_vol:/app/data \
+          proxy-tool-image
+          
+        # Note: Upar '-v' wali line data bachane ke liye hai.
+        # Agar tumhare code me data kisi aur folder me save hota hai 
+        # (jaise '/files' ya '/db'), to '/app/data' ko change kar dena.
+
+    - name: Cleanup Space
+      run: |
+        # Purani images delete karo
+        docker image prune -f
