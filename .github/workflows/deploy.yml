@@ -1,43 +1,29 @@
-name: Deploy Proxy Tool
+name: Deploy Full Stack App
 
 on:
   push:
-    branches: [ "main" ]  # Jab code push hoga tab chalega
+    branches: [ "main" ]
 
 jobs:
   deploy:
-    runs-on: self-hosted  # Ye tumhare Ubuntu VM ko target karega
+    runs-on: self-hosted
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Build Docker Image
+    - name: Shutdown Old Containers
       run: |
-        # Code se nayi image banao
-        docker build -t proxy-tool-image .
+        # Purane containers (App + DB + Redis) ko band karo
+        docker compose down || true
 
-    - name: Stop Old Container
+    - name: Start New Setup
       run: |
-        # Purana container roko (agar chal raha hai)
-        docker stop proxy-tool-container || true
-        docker rm proxy-tool-container || true
-
-    - name: Run New Container
-      run: |
-        # Naya container chalao (Data save karne ke sath)
-        docker run -d \
-          --name proxy-tool-container \
-          --restart always \
-          --network host \
-          -v proxy_data_vol:/app/data \
-          proxy-tool-image
-          
-        # Note: Upar '-v' wali line data bachane ke liye hai.
-        # Agar tumhare code me data kisi aur folder me save hota hai 
-        # (jaise '/files' ya '/db'), to '/app/data' ko change kar dena.
+        # Pura system (App, DB, Redis) ek sath start karo
+        # -d ka matlab background me chalao
+        # --build ka matlab naya code aane par rebuild karo
+        docker compose up -d --build
 
     - name: Cleanup Space
       run: |
-        # Purani images delete karo
         docker image prune -f
