@@ -306,7 +306,7 @@
                                         <code
                                             class="flex-1 px-3 py-2 text-sm font-mono text-emerald-400">http://localhost:8000/api/proxies/external</code>
                                         <button
-                                            onclick="navigator.clipboard.writeText('http://localhost:8000/api/proxies/external')"
+                                            onclick="navigator.clipboard.writeText('http://localhost:9000/api/proxies/external')"
                                             class="p-2 hover:bg-white/10 rounded-md transition-colors text-slate-400 hover:text-white">
                                             <span class="material-symbols-outlined text-[20px]">content_copy</span>
                                         </button>
@@ -337,7 +337,7 @@
                                         class="text-xs text-primary hover:text-white transition-colors">Copy</button>
                                 </div>
                                 <code id="powershellExample" class="break-all block text-emerald-400/90">
-                                    Invoke-RestMethod -Uri "http://localhost:8000/api/proxies/external" -Headers @{Authorization="Bearer TOKEN"}
+                                    Invoke-RestMethod -Uri "http://localhost:9000/api/proxies/external" -Headers @{Authorization="Bearer TOKEN"}
                                 </code>
                             </div>
                         </div>
@@ -357,7 +357,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
     <script>
-        const BACKEND_URL = "http://127.0.0.1:8000";
+        const BACKEND_URL = "http://127.0.0.1:9000";
 
         // Check Auth
         const token = localStorage.getItem('token');
