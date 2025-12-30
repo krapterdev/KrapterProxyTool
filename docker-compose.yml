@@ -8,11 +8,11 @@ services:
     volumes:
       - .:/app
     ports:
-      - "8000:8000"
+      - "9000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/proxies
       - REDIS_URL=redis://redis:6379/0
-      - BACKEND_URL=http://localhost:8000
+      - BACKEND_URL=http://localhost:9000
     depends_on:
       - db
       - redis
@@ -36,7 +36,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - "8080:8080"
+      - "9080:8080"
     environment:
       - BACKEND_URL=http://backend:8000
     depends_on:
@@ -51,12 +51,12 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=proxies
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
 
