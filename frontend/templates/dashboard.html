@@ -299,6 +299,22 @@
                             <div class="space-y-6">
                                 <div>
                                     <label
+                                        class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">API
+                                        Endpoint</label>
+                                    <div
+                                        class="flex items-center gap-2 bg-black/30 p-1 rounded-lg border border-white/10">
+                                        <code
+                                            class="flex-1 px-3 py-2 text-sm font-mono text-emerald-400">http://localhost:2223/api/proxies/external</code>
+                                        <button
+                                            onclick="navigator.clipboard.writeText('http://localhost:2223/api/proxies/external')"
+                                            class="p-2 hover:bg-white/10 rounded-md transition-colors text-slate-400 hover:text-white">
+                                            <span class="material-symbols-outlined text-[20px]">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label
                                         class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Your
                                         Secret Token</label>
                                     <div
@@ -315,8 +331,19 @@
 
                             <div
                                 class="bg-black/40 rounded-lg p-4 border border-white/5 font-mono text-xs text-slate-300">
-
+                                <div class="flex justify-between items-center mb-2 border-b border-white/10 pb-2">
+                                    <span class="font-bold text-slate-400">PowerShell (Windows)</span>
+                                    <button onclick="copyPowerShell()"
+                                        class="text-xs text-primary hover:text-white transition-colors">Copy</button>
+                                </div>
+                                <code id="powershellExample" class="break-all block text-emerald-400/90">
+                                    Invoke-RestMethod -Uri "http://localhost:2223/api/proxies/external" -Headers @{Authorization="Bearer TOKEN"}
+                                </code>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
