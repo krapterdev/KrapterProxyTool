@@ -57,9 +57,18 @@ def init_db():
                     email TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
                     proxy_limit INTEGER DEFAULT 10,
-                    is_admin BOOLEAN DEFAULT FALSE
+                    is_admin BOOLEAN DEFAULT FALSE,
+                    api_key TEXT UNIQUE
                 )
             ''')
+            
+            # Migration: Add api_key if it doesn't exist
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key TEXT UNIQUE")
+                conn.commit()
+            except Exception as e:
+                print(f"Migration warning (api_key): {e}")
+                conn.rollback()
 
             # History table for Graph
             cursor.execute('''
@@ -237,6 +246,21 @@ class PostgresClient:
         user = cursor.fetchone()
         conn.close()
         return user
+
+    def get_user_by_api_key(self, api_key: str):
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM users WHERE api_key = %s", (api_key,))
+        user = cursor.fetchone()
+        conn.close()
+        return user
+
+    def update_api_key(self, email: str, new_key: str):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET api_key = %s WHERE email = %s", (new_key, email))
+        conn.commit()
+        conn.close()
 
 # Use Redis for caching if needed later, currently just DB wrapper
 redis_client = PostgresClient()

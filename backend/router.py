@@ -5,7 +5,7 @@ import openpyxl
 from fastapi.responses import FileResponse, Response
 import os
 from io import BytesIO
-from auth import get_current_user_obj
+from auth import get_current_user_obj, get_dual_auth_user
 
 router = APIRouter()
 
@@ -105,7 +105,7 @@ async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends(g
 
 # Public/External API (Protected by token still, but maybe different rate limits later)
 @router.get("/api/proxies/external")
-async def get_external_proxies(limit: int = None, current_user: dict = Depends(get_current_user_obj)):
+async def get_external_proxies(limit: int = None, current_user: dict = Depends(get_dual_auth_user)):
     # Ensure they don't exceed their assigned limit
     user_limit = current_user["proxy_limit"]
     email = current_user["email"]
@@ -135,6 +135,73 @@ async def get_external_proxies(limit: int = None, current_user: dict = Depends(g
                     flat_list.append(f"{parts[0]}:{parts[1]}")
         
     return Response(content="\n".join(flat_list[:actual_limit]), media_type="text/plain")
+
+    return Response(content="\n".join(flat_list[:actual_limit]), media_type="text/plain")
+
+@router.get("/api/proxies/random")
+async def get_random_proxy(format: str = "json", current_user: dict = Depends(get_dual_auth_user)):
+    """
+    Returns a single random high-quality proxy (Gold or Silver).
+    format: 'json' (default) or 'text'
+    """
+    import random
+    
+    # Get all proxies (admin gets all, user gets assigned)
+    limit = current_user["proxy_limit"]
+    email = current_user["email"]
+    is_admin = current_user["is_admin"]
+    
+    if not is_admin:
+        redis_client.assign_proxies(email, limit)
+        
+    all_data = redis_client.get_all_proxies(limit=limit if not is_admin else None, user_email=email, is_admin=is_admin)
+    
+    # Pool of good proxies
+    candidates = []
+    if "gold" in all_data:
+        candidates.extend(all_data["gold"])
+    if "silver" in all_data:
+        candidates.extend(all_data["silver"])
+        
+    # Fallback to bronze if no good ones
+    if not candidates and "bronze" in all_data:
+        candidates.extend(all_data["bronze"])
+        
+    if not candidates:
+        raise HTTPException(status_code=404, detail="No proxies available")
+        
+    # Pick one
+    chosen = random.choice(candidates)
+    
+    # Format: IP:PORT
+    parts = chosen["proxy"].split(":")
+    ip_port = f"{parts[0]}:{parts[1]}"
+    
+    if format == "text":
+        return Response(content=ip_port, media_type="text/plain")
+    
+    return {
+        "proxy": ip_port,
+        "protocol": "http",
+        "country": parts[2] if len(parts) > 2 else "Unknown",
+        "latency": chosen["latency"]
+    }
+
+# --- API Key Management ---
+@router.post("/api/key/generate")
+async def generate_api_key(current_user: dict = Depends(get_current_user_obj)):
+    """Generate or Regenerate a permanent API Key"""
+    import uuid
+    new_key = f"sk_live_{uuid.uuid4().hex}"
+    redis_client.update_api_key(current_user["email"], new_key)
+    return {"api_key": new_key}
+
+@router.get("/api/key")
+async def get_api_key(current_user: dict = Depends(get_current_user_obj)):
+    """Get current API Key"""
+    # Re-fetch user to get latest key
+    user = redis_client.get_user_by_email(current_user["email"])
+    return {"api_key": user.get("api_key")}
 
 @router.get("/api/history")
 async def get_history():

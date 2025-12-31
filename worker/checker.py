@@ -156,10 +156,16 @@ async def process_proxies(proxies):
                 pass
 
 def run_checker(proxies):
-    # Limit to 1000 proxies for testing if the list is huge
-    if len(proxies) > 1000:
-        logging.info(f"Limiting check to first 1000 of {len(proxies)} proxies for speed.")
-        proxies = proxies[:1000]
+    import random
+    # Shuffle to avoid checking the same top 1000 every time
+    random.shuffle(proxies)
+    
+    # Limit to 2000 proxies for testing if the list is huge
+    if len(proxies) > 2000:
+        msg = f"Limiting check to random 2000 of {len(proxies)} proxies for speed."
+        logging.info(msg)
+        print(msg)
+        proxies = proxies[:2000]
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
