@@ -126,7 +126,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <a href="${BACKEND_URL}/proxies/export/excel"
+                        <a href="{{ BACKEND_URL }}/proxies/export/excel"
                             class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
                             <span class="material-symbols-outlined text-[20px]">table_view</span>
                             Export Excel
@@ -185,8 +185,15 @@
                 <div class="text-center text-xs text-slate-400 mt-4">
                     Last Updated: <span id="lastUpdated">Never</span>
                 </div>
+
                 <script>
+                    const html = document.documentElement;
                     const icon = document.getElementById('themeIcon');
+                    const token = localStorage.getItem('token');
+
+                    if (!token) {
+                        window.location.href = '/login';
+                    }
 
                     if (html.classList.contains('dark')) {
                         html.classList.remove('dark');
@@ -198,6 +205,17 @@
                         localStorage.setItem('theme', 'dark');
                     }
 
+                    function toggleDarkMode() {
+                        if (html.classList.contains('dark')) {
+                            html.classList.remove('dark');
+                            icon.innerText = 'dark_mode';
+                            localStorage.setItem('theme', 'light');
+                        } else {
+                            html.classList.add('dark');
+                            icon.innerText = 'light_mode';
+                            localStorage.setItem('theme', 'dark');
+                        }
+                    }
 
                     function logout() {
                         localStorage.removeItem('token');

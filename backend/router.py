@@ -47,7 +47,7 @@ async def get_proxies_by_level(level: str, current_user: dict = Depends(get_curr
         
     return redis_client.get_proxies(level, limit=limit if not is_admin else None, user_email=email, is_admin=is_admin)
 
-@router.get("/stats")
+@router.get("/proxies/stats")
 async def get_stats():
     return redis_client.get_stats()
 
