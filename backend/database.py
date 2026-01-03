@@ -176,7 +176,8 @@ class PostgresClient:
                 "latency": row["latency"],
                 "assigned_to": row.get("assigned_to"),
                 "lat": row.get("lat"),
-                "lon": row.get("lon")
+                "lon": row.get("lon"),
+                "last_checked": str(row.get("last_checked"))
             }
             if row["level"] == "gold":
                 gold.append(p)

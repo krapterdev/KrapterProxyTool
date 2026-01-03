@@ -20,7 +20,16 @@ class UserSignup(BaseModel):
 
 # Signup endpoint removed for single-user mode
 
-@router.get("/proxies/all")
+@router.get("/api/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user_obj)):
+    return {
+        "email": current_user["email"],
+        "is_admin": current_user["is_admin"],
+        "proxy_limit": current_user["proxy_limit"],
+        "api_key": current_user.get("api_key")
+    }
+
+@router.get("/api/proxies/all")
 async def get_all_proxies(current_user: dict = Depends(get_current_user_obj)): 
     # Use the user's proxy limit
     limit = current_user["proxy_limit"]
@@ -31,9 +40,10 @@ async def get_all_proxies(current_user: dict = Depends(get_current_user_obj)):
     if not is_admin:
         redis_client.assign_proxies(email, limit)
     
+    # Return full structure
     return redis_client.get_all_proxies(limit=limit if not is_admin else None, user_email=email, is_admin=is_admin)
 
-@router.get("/proxies/{level}")
+@router.get("/api/proxies/{level}")
 async def get_proxies_by_level(level: str, current_user: dict = Depends(get_current_user_obj)):
     if level not in ["gold", "silver", "bronze"]:
         raise HTTPException(status_code=400, detail="Invalid level")
@@ -47,11 +57,11 @@ async def get_proxies_by_level(level: str, current_user: dict = Depends(get_curr
         
     return redis_client.get_proxies(level, limit=limit if not is_admin else None, user_email=email, is_admin=is_admin)
 
-@router.get("/proxies/stats")
+@router.get("/api/proxies/stats")
 async def get_stats():
     return redis_client.get_stats()
 
-@router.get("/proxies/export/excel")
+@router.get("/api/proxies/export/excel")
 async def export_excel(current_user: dict = Depends(get_current_user_obj)):
     # Export respects limit too
     limit = current_user["proxy_limit"]
@@ -95,7 +105,7 @@ async def export_excel(current_user: dict = Depends(get_current_user_obj)):
     return Response(content=buffer.getvalue(), headers=headers, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 # Admin Endpoint
-@router.post("/admin/upgrade")
+@router.post("/api/admin/upgrade")
 async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends(get_current_user_obj)):
     if not current_user["is_admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")

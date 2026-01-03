@@ -9,8 +9,14 @@ def get_proxies():
     # In a real scenario, you'd add more sources here.
     
     proxies = [
-        "1.1.1.1:80", # Dummy
-        "8.8.8.8:80", # Dummy
+        "1.1.1.1:80", 
+        "8.8.8.8:80",
+        "8.8.4.4:80",
+        "208.67.222.222:80",
+        "208.67.220.220:80",
+        "185.228.168.9:80", # CleanBrowsing
+        "76.76.19.19:80", # Control D
+        "94.140.14.14:80", # AdGuard
     ]
     
     try:

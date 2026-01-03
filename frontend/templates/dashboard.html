@@ -122,13 +122,13 @@
 
         <div class="p-4 border-t border-slate-200 dark:border-slate-800">
             <div class="flex items-center gap-3">
-                <div
+                <div id="user-initial"
                     class="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white font-bold text-xs">
-                    A
+                    U
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-slate-900 dark:text-white truncate">Admin User</p>
-                    <p class="text-xs text-slate-500 truncate">admin@proxyhub.io</p>
+                    <p id="user-role" class="text-sm font-medium text-slate-900 dark:text-white truncate">Loading...</p>
+                    <p id="user-email" class="text-xs text-slate-500 truncate">...</p>
                 </div>
             </div>
         </div>
@@ -638,6 +638,23 @@
         // Auto Refresh
         setInterval(fetchData, 5000);
         fetchData();
+        fetchUserInfo();
+
+        async function fetchUserInfo() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const user = await res.json();
+                    document.getElementById('user-email').innerText = user.email;
+                    document.getElementById('user-role').innerText = user.is_admin ? "Admin User" : "Standard User";
+                    document.getElementById('user-initial').innerText = user.email.charAt(0).toUpperCase();
+                }
+            } catch (e) {
+                console.error("Failed to fetch user info", e);
+            }
+        }
     </script>
 </body>
 
