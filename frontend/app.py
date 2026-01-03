@@ -24,6 +24,11 @@ async def login_page(request: Request):
     backend_url = os.getenv("BACKEND_URL", "http://localhost:2223")
     return templates.TemplateResponse("login.html", {"request": request, "BACKEND_URL": backend_url})
 
+@app.get("/history", response_class=HTMLResponse)
+async def history_page(request: Request):
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:2223")
+    return templates.TemplateResponse("history.html", {"request": request, "BACKEND_URL": backend_url})
+
 
 
 @app.get("/proxies/all")

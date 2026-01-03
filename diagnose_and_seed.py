@@ -55,19 +55,22 @@ def run_diagnostics():
     for i in range(10):
         mock_proxies.append({
             "ip": f"10.10.1.{i}", "port": "8080", "country": "United States", "code": "US",
-            "latency": random.randint(50, 200), "level": "gold"
+            "latency": random.randint(50, 200), "level": "gold",
+            "lat": random.uniform(30, 48), "lon": random.uniform(-120, -75)
         })
     # Silver
     for i in range(15):
         mock_proxies.append({
             "ip": f"10.10.2.{i}", "port": "3128", "country": "Germany", "code": "DE",
-            "latency": random.randint(300, 700), "level": "silver"
+            "latency": random.randint(300, 700), "level": "silver",
+            "lat": random.uniform(47, 55), "lon": random.uniform(6, 15)
         })
     # Bronze
     for i in range(20):
         mock_proxies.append({
             "ip": f"10.10.3.{i}", "port": "80", "country": "Brazil", "code": "BR",
-            "latency": random.randint(1000, 5000), "level": "bronze"
+            "latency": random.randint(1000, 5000), "level": "bronze",
+            "lat": random.uniform(-30, -5), "lon": random.uniform(-70, -35)
         })
 
     added = 0
@@ -76,12 +79,14 @@ def run_diagnostics():
         try:
             cursor.execute("""
                 INSERT INTO proxies (proxy, ip, port, country, country_code, latency, level, last_checked, lat, lon)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, 0.0, 0.0)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
                 ON CONFLICT (proxy) DO UPDATE SET
                     latency = EXCLUDED.latency,
                     level = EXCLUDED.level,
-                    last_checked = CURRENT_TIMESTAMP
-            """, (proxy_str, p['ip'], p['port'], p['country'], p['code'], p['latency'], p['level']))
+                    last_checked = CURRENT_TIMESTAMP,
+                    lat = EXCLUDED.lat,
+                    lon = EXCLUDED.lon
+            """, (proxy_str, p['ip'], p['port'], p['country'], p['code'], p['latency'], p['level'], p['lat'], p['lon']))
             added += 1
         except Exception as e:
             print(f"   Error inserting {proxy_str}: {e}")
