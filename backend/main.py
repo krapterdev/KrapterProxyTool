@@ -2,7 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from router import router
-from auth import authenticate_user, tokens, oauth2_scheme, get_current_user_obj, init_auth
+from auth import authenticate_user, create_access_token, oauth2_scheme, get_current_user_obj, init_auth, ACCESS_TOKEN_EXPIRE_MINUTES
+from datetime import timedelta
 import secrets
 
 app = FastAPI(title="Krapter Proxy Tool - Backend")
@@ -30,12 +31,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # OAuth2PasswordRequestForm has 'username' field, we use it for email
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
-    token = secrets.token_hex(16)
-    # Store email
-    tokens[token] = user["email"]
-    return {"access_token": token, "token_type": "bearer"}
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["email"]}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # Include API Router
 app.include_router(router)
