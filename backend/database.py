@@ -186,10 +186,21 @@ class PostgresClient:
             elif row["level"] == "bronze":
                 bronze.append(p)
                 
+        # Calculate metadata
+        total_count = len(rows)
+        last_updated = "Never"
+        if rows:
+            # Find max last_checked
+            timestamps = [r["last_checked"] for r in rows if r["last_checked"]]
+            if timestamps:
+                last_updated = str(max(timestamps))
+
         return {
             "gold": gold,
             "silver": silver,
-            "bronze": bronze
+            "bronze": bronze,
+            "total": total_count,
+            "last_updated": last_updated
         }
 
     def get_stats(self):
