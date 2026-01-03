@@ -1,3 +1,9 @@
 fastapi
 uvicorn
 redis
+python-jose[cryptography]
+passlib[bcrypt]
+psycopg2-binary
+python-multipart
+openpyxl
+requests
