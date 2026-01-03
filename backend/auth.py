@@ -74,7 +74,7 @@ def init_auth():
     create_user("krapter.dev@gmail.com", "Chikki!@#1998", proxy_limit=1000, is_admin=True)
 
 # Auth Config
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 credentials_exception = HTTPException(

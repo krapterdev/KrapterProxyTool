@@ -185,86 +185,87 @@
                 <div class="text-center text-xs text-slate-400 mt-4">
                     Last Updated: <span id="lastUpdated">Never</span>
                 </div>
-            const icon = document.getElementById('themeIcon');
+                <script>
+                    const icon = document.getElementById('themeIcon');
 
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                icon.innerText = 'dark_mode';
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.add('dark');
-                icon.innerText = 'light_mode';
-                localStorage.setItem('theme', 'dark');
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user_email');
-            window.location.href = '/login';
-        }
-
-        // Initialize Theme
-        if (localStorage.getItem('theme') === 'light') {
-            document.documentElement.classList.remove('dark');
-            document.getElementById('themeIcon').innerText = 'dark_mode';
-        }
-
-        const BACKEND_URL = "{{ BACKEND_URL }}";
-
-        // Fetch Data
-        async function fetchData(isManual = false) {
-            const statusEl = document.getElementById('lastUpdated');
-            try {
-                const res = await fetch(`${BACKEND_URL}/proxies/all`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                    if (html.classList.contains('dark')) {
+                        html.classList.remove('dark');
+                        icon.innerText = 'dark_mode';
+                        localStorage.setItem('theme', 'light');
+                    } else {
+                        html.classList.add('dark');
+                        icon.innerText = 'light_mode';
+                        localStorage.setItem('theme', 'dark');
                     }
-                });
 
-                if (res.status === 401) {
-                    logout(); // Token expired or invalid
-                    return;
-                }
 
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    function logout() {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user_email');
+                        window.location.href = '/login';
+                    }
 
-                const data = await res.json();
-                updateDashboard(data);
+                    // Initialize Theme
+                    if (localStorage.getItem('theme') === 'light') {
+                        document.documentElement.classList.remove('dark');
+                        document.getElementById('themeIcon').innerText = 'dark_mode';
+                    }
 
-                if (isManual) {
-                    const now = new Date().toLocaleTimeString();
-                    statusEl.innerText = now;
-                    statusEl.classList.remove('text-red-500');
-                    statusEl.classList.add('text-slate-400');
-                }
-            } catch (e) {
-                console.error("Fetch error:", e);
-                statusEl.innerText = "Error: " + e.message;
-                statusEl.classList.add('text-red-500');
-                statusEl.classList.remove('text-slate-400');
-            }
-        }
+                    const BACKEND_URL = "{{ BACKEND_URL }}";
 
-        function updateDashboard(data) {
-            const gold = data.gold || [];
-            const silver = data.silver || [];
-            const bronze = data.bronze || [];
+                    // Fetch Data
+                    async function fetchData(isManual = false) {
+                        const statusEl = document.getElementById('lastUpdated');
+                        try {
+                            const res = await fetch(`${BACKEND_URL}/proxies/all`, {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            });
 
-            // Combine all proxies for table
-            const allProxies = [
-                ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-100 text-yellow-800 border-yellow-200' })),
-                ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-500', badge: 'bg-slate-100 text-slate-800 border-slate-200' })),
-                ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-600', badge: 'bg-orange-100 text-orange-800 border-orange-200' })),
-            ];
+                            if (res.status === 401) {
+                                logout(); // Token expired or invalid
+                                return;
+                            }
 
-            // Sort by Latency (Ascending)
-            allProxies.sort((a, b) => a.latency - b.latency);
+                            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-            const tbody = document.getElementById('proxyTableBody');
+                            const data = await res.json();
+                            updateDashboard(data);
 
-            if (allProxies.length === 0) {
-                tbody.innerHTML = `
+                            if (isManual) {
+                                const now = new Date().toLocaleTimeString();
+                                statusEl.innerText = now;
+                                statusEl.classList.remove('text-red-500');
+                                statusEl.classList.add('text-slate-400');
+                            }
+                        } catch (e) {
+                            console.error("Fetch error:", e);
+                            statusEl.innerText = "Error: " + e.message;
+                            statusEl.classList.add('text-red-500');
+                            statusEl.classList.remove('text-slate-400');
+                        }
+                    }
+
+                    function updateDashboard(data) {
+                        const gold = data.gold || [];
+                        const silver = data.silver || [];
+                        const bronze = data.bronze || [];
+
+                        // Combine all proxies for table
+                        const allProxies = [
+                            ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-100 text-yellow-800 border-yellow-200' })),
+                            ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-500', badge: 'bg-slate-100 text-slate-800 border-slate-200' })),
+                            ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-600', badge: 'bg-orange-100 text-orange-800 border-orange-200' })),
+                        ];
+
+                        // Sort by Latency (Ascending)
+                        allProxies.sort((a, b) => a.latency - b.latency);
+
+                        const tbody = document.getElementById('proxyTableBody');
+
+                        if (allProxies.length === 0) {
+                            tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="px-6 py-4 text-center text-slate-500 dark:text-slate-400">
                             <div class="flex flex-col items-center justify-center py-8">
@@ -274,46 +275,46 @@
                         </td>
                     </tr>
                 `;
-                return;
-            }
+                            return;
+                        }
 
-            // Clear table to rebuild
-            tbody.innerHTML = '';
+                        // Clear table to rebuild
+                        tbody.innerHTML = '';
 
-            allProxies.forEach(p => {
-                try {
-                    // Format is IP:PORT:COUNTRY:CODE
-                    if (!p.proxy) return;
+                        allProxies.forEach(p => {
+                            try {
+                                // Format is IP:PORT:COUNTRY:CODE
+                                if (!p.proxy) return;
 
-                    const parts = p.proxy.split(':');
-                    if (parts.length < 2) return;
+                                const parts = p.proxy.split(':');
+                                if (parts.length < 2) return;
 
-                    let ip = parts[0];
-                    let port = parts[1];
-                    let country = parts.length > 2 ? parts[2] : "Unknown";
-                    let countryCode = parts.length > 3 ? parts[3] : null;
+                                let ip = parts[0];
+                                let port = parts[1];
+                                let country = parts.length > 2 ? parts[2] : "Unknown";
+                                let countryCode = parts.length > 3 ? parts[3] : null;
 
-                    // Reconstruct proxy string for copy (IP:PORT)
-                    const proxyStr = `${ip}:${port}`;
+                                // Reconstruct proxy string for copy (IP:PORT)
+                                const proxyStr = `${ip}:${port}`;
 
-                    // Calculate Stability Score based on Latency
-                    let stabilityScore = Math.round(100 - ((p.latency / 1500) * 40));
-                    if (stabilityScore > 100) stabilityScore = 100;
-                    if (stabilityScore < 0) stabilityScore = 0;
+                                // Calculate Stability Score based on Latency
+                                let stabilityScore = Math.round(100 - ((p.latency / 1500) * 40));
+                                if (stabilityScore > 100) stabilityScore = 100;
+                                if (stabilityScore < 0) stabilityScore = 0;
 
-                    let stabilityColor = "bg-emerald-500";
-                    if (stabilityScore < 85) stabilityColor = "bg-yellow-500";
-                    if (stabilityScore < 70) stabilityColor = "bg-orange-500";
+                                let stabilityColor = "bg-emerald-500";
+                                if (stabilityScore < 85) stabilityColor = "bg-yellow-500";
+                                if (stabilityScore < 70) stabilityColor = "bg-orange-500";
 
-                    // Flag Image
-                    let flagHtml = '';
-                    if (countryCode && countryCode !== 'UN') {
-                        flagHtml = `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" alt="${countryCode}" class="w-6 h-4 rounded-sm shadow-sm object-cover">`;
-                    } else {
-                        flagHtml = `<span class="material-symbols-outlined text-slate-400 text-[20px]">public</span>`;
-                    }
+                                // Flag Image
+                                let flagHtml = '';
+                                if (countryCode && countryCode !== 'UN') {
+                                    flagHtml = `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" alt="${countryCode}" class="w-6 h-4 rounded-sm shadow-sm object-cover">`;
+                                } else {
+                                    flagHtml = `<span class="material-symbols-outlined text-slate-400 text-[20px]">public</span>`;
+                                }
 
-                    const row = `
+                                const row = `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center gap-2 cursor-pointer" onclick="navigator.clipboard.writeText('${proxyStr}')">
@@ -353,36 +354,36 @@
                         </td>
                     </tr>
                     `;
-                    tbody.innerHTML += row;
-                } catch (err) {
-                    console.error("Error rendering proxy row:", err, p);
-                }
-            });
-        }
-
-        function filterTable() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById('proxyTableBody');
-            const tr = table.getElementsByTagName('tr');
-
-            for (let i = 0; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName('td')[0];
-                if (td) {
-                    const txtValue = td.textContent || td.innerText;
-                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                        tr[i].style.display = "";
-                    } else {
-                        tr[i].style.display = "none";
+                                tbody.innerHTML += row;
+                            } catch (err) {
+                                console.error("Error rendering proxy row:", err, p);
+                            }
+                        });
                     }
-                }
-            }
-        }
 
-        // Auto Refresh
-        setInterval(() => fetchData(false), 2000);
-        fetchData(true); // Initial load
-    </script>
+                    function filterTable() {
+                        const input = document.getElementById('searchInput');
+                        const filter = input.value.toUpperCase();
+                        const table = document.getElementById('proxyTableBody');
+                        const tr = table.getElementsByTagName('tr');
+
+                        for (let i = 0; i < tr.length; i++) {
+                            const td = tr[i].getElementsByTagName('td')[0];
+                            if (td) {
+                                const txtValue = td.textContent || td.innerText;
+                                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                                    tr[i].style.display = "";
+                                } else {
+                                    tr[i].style.display = "none";
+                                }
+                            }
+                        }
+                    }
+
+                    // Auto Refresh
+                    setInterval(() => fetchData(false), 2000);
+                    fetchData(true); // Initial load
+                </script>
 </body>
 
 </html>
