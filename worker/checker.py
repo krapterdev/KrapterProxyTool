@@ -95,30 +95,42 @@ def save_to_db(new_proxies):
         logging.error(f"Error saving to DB: {e}")
 
 async def check_proxy(session, proxy):
-    # Use ip-api to get country and validate proxy
-    url = "http://ip-api.com/json"
+    # 1. Check Liveness (Connect to Google)
+    test_url = "http://www.google.com"
     proxy_url = f"http://{proxy}"
     start_time = time.time()
     
     try:
-        async with session.get(url, proxy=proxy_url, timeout=10) as response:
+        async with session.get(test_url, proxy=proxy_url, timeout=10) as response:
             if response.status == 200:
                 latency = int((time.time() - start_time) * 1000) # ms
-                data = await response.json()
-                country = data.get("country", "Unknown")
-                country_code = data.get("countryCode", "UN")
-                lat = data.get("lat")
-                lon = data.get("lon")
+                
+                # 2. Get GeoIP Data (Optional - Best Effort)
+                country = "Unknown"
+                country_code = "UN"
+                lat = None
+                lon = None
+                
+                try:
+                    # Try ip-api via proxy
+                    async with session.get("http://ip-api.com/json", proxy=proxy_url, timeout=5) as geo_res:
+                        if geo_res.status == 200:
+                            data = await geo_res.json()
+                            country = data.get("country", "Unknown")
+                            country_code = data.get("countryCode", "UN")
+                            lat = data.get("lat")
+                            lon = data.get("lon")
+                except Exception:
+                    pass # GeoIP failed, but proxy is alive
+                
                 return proxy, latency, country, country_code, lat, lon
-            else:
-                pass
     except Exception as e:
         # logging.debug(f"Proxy check failed for {proxy}: {e}")
         pass
     return proxy, None, None, None, None, None
 
 async def process_proxies(proxies):
-    chunk_size = 50
+    chunk_size = 20 # Reduced from 50 to be safer
     # logging.info(f"Processing {len(proxies)} proxies...")
     
     for i in range(0, len(proxies), chunk_size):
@@ -133,17 +145,21 @@ async def process_proxies(proxies):
 
             for proxy, latency, country, country_code, lat, lon in results:
                 if latency is not None:
+                    # Ensure we don't have None values for string formatting
+                    country = country or "Unknown"
+                    country_code = country_code or "UN"
+                    
                     proxy_str = f"{proxy}:{country}:{country_code}"
                     item = {"proxy": proxy_str, "latency": latency, "lat": lat, "lon": lon}
 
-                    # Filter: 10ms - 1200ms
+                    # Filter: 10ms - 2000ms (Relaxed upper limit)
                     if latency < 10:
                         pass # Too fast/suspicious
                     elif latency < 300:
                         batch_results["gold"].append(item)
                     elif latency < 800:
                         batch_results["silver"].append(item)
-                    elif latency < 1200:
+                    elif latency < 2000: # Increased from 1200 to capture more proxies
                         batch_results["bronze"].append(item)
             
             # Save batch to DB
@@ -160,12 +176,12 @@ def run_checker(proxies):
     # Shuffle to avoid checking the same top 1000 every time
     random.shuffle(proxies)
     
-    # Limit to 2000 proxies for testing if the list is huge
-    if len(proxies) > 2000:
-        msg = f"Limiting check to random 2000 of {len(proxies)} proxies for speed."
+    # Limit to 3000 proxies for testing if the list is huge
+    if len(proxies) > 3000:
+        msg = f"Limiting check to random 3000 of {len(proxies)} proxies for speed."
         logging.info(msg)
         print(msg)
-        proxies = proxies[:2000]
+        proxies = proxies[:3000]
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
