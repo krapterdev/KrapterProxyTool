@@ -185,21 +185,6 @@
                 <div class="text-center text-xs text-slate-400 mt-4">
                     Last Updated: <span id="lastUpdated">Never</span>
                 </div>
-
-            </div>
-        </main>
-    </div>
-
-    <script>
-        // Auth Check
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/login';
-        }
-
-        // Theme Toggle Logic
-        function toggleDarkMode() {
-            const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
 
             if (html.classList.contains('dark')) {

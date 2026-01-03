@@ -12,6 +12,13 @@
             font-family: 'Inter', sans-serif;
         }
     </style>
+    <script>
+        // Redirect if already logged in
+        const token = localStorage.getItem('token');
+        if (token) {
+            window.location.href = '/';
+        }
+    </script>
 </head>
 
 <body class="bg-slate-900 text-slate-200 h-screen flex items-center justify-center">
@@ -39,6 +46,18 @@
 
             <div id="errorMessage" class="text-red-500 text-sm text-center hidden"></div>
 
+            <button type="submit"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-emerald-900/20">
+                Sign In
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const BACKEND_URL = "{{ BACKEND_URL }}";
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorEl = document.getElementById('errorMessage');
@@ -54,40 +73,40 @@
             btn.classList.add('opacity-75');
 
             try {
-            const formData = new URLSearchParams();
-            formData.append('username', email); // OAuth2 expects 'username' field
-            formData.append('password', password);
+                const formData = new URLSearchParams();
+                formData.append('username', email); // OAuth2 expects 'username' field
+                formData.append('password', password);
 
-            const res = await fetch(`${BACKEND_URL}/token`, {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: formData
-            });
+                const res = await fetch(`${BACKEND_URL}/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
 
-            const data = await res.json();
+                const data = await res.json();
 
-            if (!res.ok) {
-            throw new Error(data.detail || 'Login failed');
-            }
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Login failed');
+                }
 
-            // Success
-            localStorage.setItem('token', data.access_token);
-            localStorage.setItem('user_email', email); // Store email for display
-            window.location.href = '/';
+                // Success
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('user_email', email); // Store email for display
+                window.location.href = '/';
 
             } catch (err) {
-            console.error(err);
-            errorEl.innerText = err.message;
-            errorEl.classList.remove('hidden');
+                console.error(err);
+                errorEl.innerText = err.message;
+                errorEl.classList.remove('hidden');
             } finally {
-            btn.disabled = false;
-            btn.innerText = 'Sign In';
-            btn.classList.remove('opacity-75');
+                btn.disabled = false;
+                btn.innerText = 'Sign In';
+                btn.classList.remove('opacity-75');
             }
-            });
-            </script>
+        });
+    </script>
 </body>
 
 </html>

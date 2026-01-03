@@ -18,6 +18,14 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -292,63 +300,230 @@
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-2xl font-bold">Developer API Access</h2>
                             <span
-                                        alert("Command copied!");
-                                    }
+                                class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider rounded-full border border-emerald-500/30">Active</span>
+                        </div>
 
-                                    function logout() {
-                                        localStorage.removeItem('token');
-                                        window.location.href = '/login';
-                                    }
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="space-y-6">
+                                <div>
+                                    <h3 class="text-sm font-medium text-slate-400 mb-2">PowerShell Integration</h3>
+                                    <div class="bg-black/50 rounded-lg p-4 font-mono text-sm border border-slate-700 relative group">
+                                        <code id="powershellExample" class="text-emerald-400">
+                                            $headers = @{ "X-API-Key" = "YOUR_API_KEY" }<br>
+                                            Invoke-RestMethod -Uri "{{ BACKEND_URL }}/api/proxies/random" -Headers $headers
+                                        </code>
+                                        <button onclick="copyCode('powershellExample')"
+                                            class="absolute top-2 right-2 p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <h3 class="text-sm font-medium text-slate-400 mb-2">Permanent API Key</h3>
+                                    <div class="bg-black/50 rounded-lg p-4 font-mono text-sm border border-slate-700 relative group">
+                                        <div class="flex items-center justify-between">
+                                            <code id="apiKeyDisplay" class="text-yellow-400 blur-sm hover:blur-none transition-all cursor-pointer">
+                                                Loading...
+                                            </code>
+                                            <div class="flex gap-2">
+                                                <button onclick="generateApiKey()" title="Regenerate Key"
+                                                    class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-slate-300">
+                                                    <span class="material-symbols-outlined text-sm">refresh</span>
+                                                </button>
+                                                <button onclick="copyApiKey()" title="Copy Key"
+                                                    class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-slate-300">
+                                                    <span class="material-symbols-outlined text-sm">content_copy</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-2">
+                                        <span class="text-yellow-500">Warning:</span> Keep this key secret. It provides full access to the API.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                    // Dark Mode Logic
+            </div>
+        </main>
+    </div>
 
-                                    const data = await response.json();
-                                    updateDashboard(data);
+    <script>
+        const BACKEND_URL = "{{ BACKEND_URL }}";
 
-                                        } catch (e) {
-                                        console.error("Fetch error:", e);
-                                    }
-                                    }
+        // Check Auth
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
 
-                                    function updateDashboard(data) {
-                                        const gold = data.gold || [];
-                                        const silver = data.silver || [];
-                                        const bronze = data.bronze || [];
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        
+        // API Key Functions
+        async function fetchApiKey() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/key`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.api_key) {
+                        document.getElementById('apiKeyDisplay').innerText = data.api_key;
+                        updateCodeExamples(data.api_key);
+                    } else {
+                        document.getElementById('apiKeyDisplay').innerText = "No API Key Generated";
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch API key", e);
+            }
+        }
 
-                                        // Update Counts
-                                        document.getElementById('count-gold').innerText = gold.length;
-                                        document.getElementById('count-silver').innerText = silver.length;
-                                        document.getElementById('count-bronze').innerText = bronze.length;
+        async function generateApiKey() {
+            if (!confirm("Generate a new API Key? The old one will stop working.")) return;
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/key/generate`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('apiKeyDisplay').innerText = data.api_key;
+                    updateCodeExamples(data.api_key);
+                    alert("New API Key generated!");
+                }
+            } catch (e) {
+                alert("Error generating key");
+            }
+        }
 
-                                        // Combine
-                                        let allProxies = [
-                                            ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' })),
-                                            ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' })),
-                                            ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-500', badge: 'bg-orange-500/10 text-orange-500 border-orange-500/20' })),
-                                        ];
+        function copyApiKey() {
+            const key = document.getElementById('apiKeyDisplay').innerText;
+            navigator.clipboard.writeText(key);
+            alert("API Key copied!");
+        }
 
-                                        allProxiesCache = allProxies; // Cache for export
+        function updateCodeExamples(key) {
+            const psCode = `$headers = @{ "X-API-Key" = "${key}" }\nInvoke-RestMethod -Uri "${BACKEND_URL}/api/proxies/random" -Headers $headers`;
+            document.getElementById('powershellExample').innerText = psCode;
+        }
 
-                                        allProxies.sort((a, b) => a.latency - b.latency);
+        function copyCode(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            alert("Code copied!");
+        }
 
-                                        // Update Table (Top 15)
-                                        const tbody = document.getElementById('proxyTableBody');
-                                        tbody.innerHTML = '';
+        // Dark Mode Logic
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
 
-                                        allProxies.slice(0, 15).forEach(p => {
-                                            if (!p.proxy) return;
-                                            const parts = p.proxy.split(':');
-                                            if (parts.length < 2) return;
-                                            let ip = parts[0];
-                                            let port = parts[1];
-                                            let country = parts.length > 2 ? parts[2] : "Unknown";
-                                            let countryCode = parts.length > 3 ? parts[3] : null;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.innerText = 'dark_mode';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                icon.innerText = 'light_mode';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
 
-                                            let flagHtml = countryCode && countryCode !== 'UN'
-                                                ? `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" class="w-5 h-3.5 rounded-sm object-cover">`
-                                                : `<span class="material-symbols-outlined text-slate-500 text-[18px]">public</span>`;
+        // Initialize Theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('themeIcon').innerText = 'dark_mode';
+        }
 
-                                            const row = `
+        // Map Initialization
+        let map = L.map('proxyMap', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([20, 0], 2);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        let markers = L.layerGroup().addTo(map);
+        let distChart = null;
+        let allProxiesCache = [];
+
+        // Fetch Data
+        async function fetchData() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/proxies/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const data = await res.json();
+                updateDashboard(data);
+                
+                // Also fetch API key if not loaded
+                if (document.getElementById('apiKeyDisplay').innerText === "Loading...") {
+                    fetchApiKey();
+                }
+
+            } catch (e) {
+                console.error("Fetch error:", e);
+            }
+        }
+
+        function updateDashboard(data) {
+            const gold = data.gold || [];
+            const silver = data.silver || [];
+            const bronze = data.bronze || [];
+
+            // Update Counts
+            document.getElementById('count-gold').innerText = gold.length;
+            document.getElementById('count-silver').innerText = silver.length;
+            document.getElementById('count-bronze').innerText = bronze.length;
+
+            // Combine
+            let allProxies = [
+                ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' })),
+                ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' })),
+                ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-500', badge: 'bg-orange-500/10 text-orange-500 border-orange-500/20' })),
+            ];
+
+            allProxiesCache = allProxies; // Cache for export
+
+            allProxies.sort((a, b) => a.latency - b.latency);
+
+            // Update Table (Top 15)
+            const tbody = document.getElementById('proxyTableBody');
+            tbody.innerHTML = '';
+
+            allProxies.slice(0, 15).forEach(p => {
+                if (!p.proxy) return;
+                const parts = p.proxy.split(':');
+                if (parts.length < 2) return;
+                let ip = parts[0];
+                let port = parts[1];
+                let country = parts.length > 2 ? parts[2] : "Unknown";
+                let countryCode = parts.length > 3 ? parts[3] : null;
+
+                let flagHtml = countryCode && countryCode !== 'UN'
+                    ? `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" class="w-5 h-3.5 rounded-sm object-cover">`
+                    : `<span class="material-symbols-outlined text-slate-500 text-[18px]">public</span>`;
+
+                const row = `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-slate-700 dark:text-slate-300">${ip}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -366,88 +541,88 @@
                         </td>
                     </tr>
                 `;
-                                            tbody.innerHTML += row;
-                                        });
+                tbody.innerHTML += row;
+            });
 
-                                        // Update Chart
-                                        updateChart(gold.length, silver.length, bronze.length);
+            // Update Chart
+            updateChart(gold.length, silver.length, bronze.length);
 
-                                        // Update Map
-                                        markers.clearLayers();
-                                        allProxies.forEach(p => {
-                                            if (p.lat && p.lon) {
-                                                let color = p.level === 'Gold' ? '#eab308' : (p.level === 'Silver' ? '#94a3b8' : '#f97316');
-                                                L.circleMarker([p.lat, p.lon], {
-                                                    radius: 4,
-                                                    fillColor: color,
-                                                    color: "#000",
-                                                    weight: 1,
-                                                    opacity: 1,
-                                                    fillOpacity: 0.8
-                                                }).bindPopup(`<b>${p.proxy.split(':')[0]}</b><br>${p.latency}ms`).addTo(markers);
-                                            }
-                                        });
-                                    }
+            // Update Map
+            markers.clearLayers();
+            allProxies.forEach(p => {
+                if (p.lat && p.lon) {
+                    let color = p.level === 'Gold' ? '#eab308' : (p.level === 'Silver' ? '#94a3b8' : '#f97316');
+                    L.circleMarker([p.lat, p.lon], {
+                        radius: 4,
+                        fillColor: color,
+                        color: "#000",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).bindPopup(`<b>${p.proxy.split(':')[0]}</b><br>${p.latency}ms`).addTo(markers);
+                }
+            });
+        }
 
-                                    function updateChart(g, s, b) {
-                                        const ctx = document.getElementById('distributionChart').getContext('2d');
-                                        if (distChart) {
-                                            distChart.data.datasets[0].data = [g, s, b];
-                                            distChart.update();
-                                        } else {
-                                            distChart = new Chart(ctx, {
-                                                type: 'doughnut',
-                                                data: {
-                                                    labels: ['Gold', 'Silver', 'Bronze'],
-                                                    datasets: [{
-                                                        data: [g, s, b],
-                                                        backgroundColor: ['#eab308', '#94a3b8', '#f97316'],
-                                                        borderWidth: 0,
-                                                        hoverOffset: 4
-                                                    }]
-                                                },
-                                                options: {
-                                                    responsive: true,
-                                                    cutout: '70%',
-                                                    plugins: {
-                                                        legend: {
-                                                            position: 'bottom',
-                                                            labels: { color: '#94a3b8', usePointStyle: true }
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        }
-                                    }
+        function updateChart(g, s, b) {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            if (distChart) {
+                distChart.data.datasets[0].data = [g, s, b];
+                distChart.update();
+            } else {
+                distChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Gold', 'Silver', 'Bronze'],
+                        datasets: [{
+                            data: [g, s, b],
+                            backgroundColor: ['#eab308', '#94a3b8', '#f97316'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#94a3b8', usePointStyle: true }
+                            }
+                        }
+                    }
+                });
+            }
+        }
 
-                                    function exportToExcel() {
-                                        if (allProxiesCache.length === 0) {
-                                            alert("No proxies to export!");
-                                            return;
-                                        }
+        function exportToExcel() {
+            if (allProxiesCache.length === 0) {
+                alert("No proxies to export!");
+                return;
+            }
 
-                                        // Prepare data for export
-                                        const exportData = allProxiesCache.map(p => {
-                                            const parts = p.proxy.split(':');
-                                            return {
-                                                IP: parts[0],
-                                                Port: parts[1],
-                                                Country: parts.length > 2 ? parts[2] : "Unknown",
-                                                Latency_ms: p.latency,
-                                                Level: p.level
-                                            };
-                                        });
+            // Prepare data for export
+            const exportData = allProxiesCache.map(p => {
+                const parts = p.proxy.split(':');
+                return {
+                    IP: parts[0],
+                    Port: parts[1],
+                    Country: parts.length > 2 ? parts[2] : "Unknown",
+                    Latency_ms: p.latency,
+                    Level: p.level
+                };
+            });
 
-                                        const ws = XLSX.utils.json_to_sheet(exportData);
-                                        const wb = XLSX.utils.book_new();
-                                        XLSX.utils.book_append_sheet(wb, ws, "Proxies");
-                                        XLSX.writeFile(wb, "ProxyHub_Export.xlsx");
-                                    }
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Proxies");
+            XLSX.writeFile(wb, "ProxyHub_Export.xlsx");
+        }
 
-                                    // Auto Refresh
-                                    setInterval(fetchData, 5000);
-                                    fetchData();
-                                </script>
+        // Auto Refresh
+        setInterval(fetchData, 5000);
+        fetchData();
+    </script>
 </body>
 
 </html>
