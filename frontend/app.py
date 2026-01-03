@@ -11,18 +11,20 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @app.get("/", response_class=HTMLResponse)
 async def read_dashboard(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:2223")
+    return templates.TemplateResponse("dashboard.html", {"request": request, "BACKEND_URL": backend_url})
 
 @app.get("/proxylist", response_class=HTMLResponse)
 async def read_proxylist(request: Request):
-    return templates.TemplateResponse("proxylist.html", {"request": request})
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:2223")
+    return templates.TemplateResponse("proxylist.html", {"request": request, "BACKEND_URL": backend_url})
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:2223")
+    return templates.TemplateResponse("login.html", {"request": request, "BACKEND_URL": backend_url})
 
-@app.get("/signup", response_class=HTMLResponse)
-async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
+
 
 @app.get("/proxies/all")
 async def get_proxies():
