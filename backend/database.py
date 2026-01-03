@@ -286,5 +286,12 @@ class PostgresClient:
         conn.commit()
         conn.close()
 
+    def clear_proxies(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM proxies")
+        conn.commit()
+        conn.close()
+
 # Use Redis for caching if needed later, currently just DB wrapper
 redis_client = PostgresClient()

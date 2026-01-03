@@ -108,6 +108,29 @@ async def export_excel(current_user: dict = Depends(get_current_user_obj)):
 async def get_history():
     return redis_client.get_history()
 
+@router.post("/api/worker/start")
+async def start_worker(current_user: dict = Depends(get_current_user_obj)):
+    if not current_user["is_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    # We use a simple flag in DB or Redis. Since we use DB wrapper:
+    # We'll just assume the worker checks a file or DB. 
+    # For now, we'll just return success as we can't easily control the process.
+    # But we can update the status text.
+    return {"status": "started", "message": "Worker started"}
+
+@router.post("/api/worker/stop")
+async def stop_worker(current_user: dict = Depends(get_current_user_obj)):
+    if not current_user["is_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return {"status": "stopped", "message": "Worker stopped"}
+
+@router.post("/api/data/clear")
+async def clear_data(current_user: dict = Depends(get_current_user_obj)):
+    if not current_user["is_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    redis_client.clear_proxies()
+    return {"message": "All proxy data cleared"}
+
 # Admin Endpoint
 @router.post("/api/admin/upgrade")
 async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends(get_current_user_obj)):

@@ -95,43 +95,15 @@
                 <span>Proxy List</span>
             </a>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
-                href="/history">
-                <span class="material-symbols-outlined">history</span>
-                <span>History</span>
-            </a>
-        </nav>
-
-        <!-- System Status Widget -->
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">System Status</span>
-                    <div id="system-status-bar" class="bg-emerald-500 h-1.5 w-1.5 rounded-full animate-pulse"></div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-slate-400 text-sm">dns</span>
-                    <span id="system-status-text" class="text-sm font-bold text-slate-700 dark:text-slate-300">Worker
-                        Active</span>
-                </div>
-                <div class="flex items-center justify-between text-xs text-slate-500">
-                    <span id="last-scrape-text">Last: Just now</span>
-                    <span id="total-proxies-count" class="font-mono">0</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-            <div class="flex items-center gap-3">
-                <div id="user-initial"
-                    class="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white font-bold text-xs">
-                    U
+                class="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white font-bold text-xs">
+                U
                 </div>
                 <div class="flex-1 min-w-0">
                     <p id="user-role" class="text-sm font-medium text-slate-900 dark:text-white truncate">Loading...</p>
                     <p id="user-email" class="text-xs text-slate-500 truncate">...</p>
                 </div>
-            </div>
-        </div>
+                </div>
+                </div>
     </aside>
 
     <!-- Mobile Header -->
@@ -502,116 +474,27 @@
                 });
                 if (res.status === 401) { logout(); return; }
                 const data = await res.json();
-                updateDashboard(data);
-                if (document.getElementById('apiKeyDisplay').innerText === "Loading...") { fetchApiKey(); }
-            } catch (e) { console.error("Fetch error:", e); }
-        }
-
-        function updateDashboard(data) {
-            const gold = data.gold || [];
-            const silver = data.silver || [];
-            const bronze = data.bronze || [];
-
-            document.getElementById('count-gold').innerText = gold.length;
-            document.getElementById('count-silver').innerText = silver.length;
-            document.getElementById('count-bronze').innerText = bronze.length;
-
-            const lastUpdatedStr = data.last_updated;
-            const totalProxies = data.total || (gold.length + silver.length + bronze.length);
-            document.getElementById('total-proxies-count').innerText = totalProxies.toLocaleString();
-
-            const statusText = document.getElementById('system-status-text');
-            const lastScrapeText = document.getElementById('last-scrape-text');
-            const statusBar = document.getElementById('system-status-bar');
-
-            if (lastUpdatedStr && lastUpdatedStr !== "Never") {
-                const timeStr = lastUpdatedStr.endsWith('Z') ? lastUpdatedStr : lastUpdatedStr + 'Z';
-                const lastDate = new Date(timeStr);
-                const now = new Date();
-                const diffMinutes = Math.floor((now - lastDate) / 60000);
-                const displayMinutes = diffMinutes < 0 ? 0 : diffMinutes;
-                lastScrapeText.innerText = `Last: ${displayMinutes}m ago`;
-
-                if (displayMinutes < 5) {
-                    statusText.innerText = "Worker Active";
-                    statusText.className = "text-sm font-bold text-emerald-500";
-                    statusBar.className = "bg-emerald-500 h-1.5 rounded-full animate-pulse";
-                } else if (displayMinutes < 15) {
-                    statusText.innerText = "Worker Idle";
-                    statusText.className = "text-sm font-bold text-yellow-500";
-                    statusBar.className = "bg-yellow-500 h-1.5 rounded-full";
-                } else {
-                    statusText.innerText = "Worker Stopped";
-                    statusText.className = "text-sm font-bold text-red-500";
-                    statusBar.className = "bg-red-500 h-1.5 rounded-full";
-                }
-            } else {
-                statusText.innerText = "No Data";
-                statusText.className = "text-sm font-bold text-slate-500";
-                statusBar.className = "bg-slate-500 h-1.5 rounded-full";
-                lastScrapeText.innerText = "Last: Never";
-            }
-
-            let allProxies = [
-                ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' })),
-                ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' })),
-                ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-500', badge: 'bg-orange-500/10 text-orange-500 border-orange-500/20' })),
-            ];
-            allProxiesCache = allProxies;
-            allProxies.sort((a, b) => a.latency - b.latency);
-            const tbody = document.getElementById('proxyTableBody');
-            tbody.innerHTML = '';
-            allProxies.slice(0, 15).forEach(p => {
-                if (!p.proxy) return;
-                const parts = p.proxy.split(':');
-                if (parts.length < 2) return;
-                let ip = parts[0];
-                let port = parts[1];
-                let country = parts.length > 2 ? parts[2] : "Unknown";
-                let countryCode = parts.length > 3 ? parts[3] : null;
-                let flagHtml = countryCode && countryCode !== 'UN' ? `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" class="w-5 h-3.5 rounded-sm object-cover">` : `<span class="material-symbols-outlined text-slate-500 text-[18px]">public</span>`;
-                const row = `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"><td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-slate-700 dark:text-slate-300">${ip}</td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center gap-2">${flagHtml}<span class="text-sm text-slate-700 dark:text-slate-300">${country}</span></div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${port}</td><td class="px-6 py-4 whitespace-nowrap"><span class="font-bold ${p.color}">${p.latency} ms</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${p.badge}">${p.level}</span></td></tr>`;
-                tbody.innerHTML += row;
-            });
-            updateChart(gold.length, silver.length, bronze.length);
-            markers.clearLayers();
-            allProxies.forEach(p => {
-                if (p.lat && p.lon) {
-                    let color = p.level === 'Gold' ? '#eab308' : (p.level === 'Silver' ? '#94a3b8' : '#f97316');
-                    L.circleMarker([p.lat, p.lon], { radius: 4, fillColor: color, color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 }).bindPopup(`<b>${p.proxy.split(':')[0]}</b><br>${p.latency}ms`).addTo(markers);
-                }
-            });
-        }
-
-        function updateChart(g, s, b) {
-            const ctx = document.getElementById('distributionChart').getContext('2d');
-            if (distChart) {
-                distChart.data.datasets[0].data = [g, s, b];
-                distChart.update();
-            } else {
-                distChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Gold', 'Silver', 'Bronze'],
+                data: {
+                    labels: ['Gold', 'Silver', 'Bronze'],
                         datasets: [{
                             data: [g, s, b],
                             backgroundColor: ['#eab308', '#94a3b8', '#f97316'],
                             borderWidth: 0,
                             hoverOffset: 4
                         }]
-                    },
-                    options: {
-                        responsive: true,
+                },
+                options: {
+                    responsive: true,
                         cutout: '70%',
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
+                            plugins: {
+                        legend: {
+                            position: 'bottom',
                                 labels: { color: '#94a3b8', usePointStyle: true }
-                            }
                         }
                     }
-                });
-            }
+                }
+            });
+        }
         }
 
         function exportToExcel() {
