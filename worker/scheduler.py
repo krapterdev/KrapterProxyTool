@@ -62,8 +62,8 @@ def job():
 
 if __name__ == "__main__":
     scheduler = BlockingScheduler()
-    # Run every 2 minutes
-    scheduler.add_job(job, 'interval', minutes=2)
+    # Run every 1 minute
+    scheduler.add_job(job, 'interval', minutes=1)
     
     print("Worker started. Press Ctrl+C to exit.")
     

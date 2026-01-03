@@ -96,37 +96,40 @@ def save_to_db(new_proxies):
 
 async def check_proxy(session, proxy):
     # 1. Check Liveness (Connect to Google)
-    test_url = "http://www.google.com"
+    test_urls = ["http://www.google.com", "http://example.com", "http://1.1.1.1"]
     proxy_url = f"http://{proxy}"
-    start_time = time.time()
     
-    try:
-        async with session.get(test_url, proxy=proxy_url, timeout=10) as response:
-            if response.status == 200:
-                latency = int((time.time() - start_time) * 1000) # ms
-                
-                # 2. Get GeoIP Data (Optional - Best Effort)
-                country = "Unknown"
-                country_code = "UN"
-                lat = None
-                lon = None
-                
-                try:
-                    # Try ip-api via proxy
-                    async with session.get("http://ip-api.com/json", proxy=proxy_url, timeout=5) as geo_res:
-                        if geo_res.status == 200:
-                            data = await geo_res.json()
-                            country = data.get("country", "Unknown")
-                            country_code = data.get("countryCode", "UN")
-                            lat = data.get("lat")
-                            lon = data.get("lon")
-                except Exception:
-                    pass # GeoIP failed, but proxy is alive
-                
-                return proxy, latency, country, country_code, lat, lon
-    except Exception as e:
-        # logging.debug(f"Proxy check failed for {proxy}: {e}")
-        pass
+    for test_url in test_urls:
+        start_time = time.time()
+        try:
+            async with session.get(test_url, proxy=proxy_url, timeout=15) as response:
+                if response.status == 200:
+                    latency = int((time.time() - start_time) * 1000) # ms
+                    
+                    # 2. Get GeoIP Data (Optional - Best Effort)
+                    country = "Unknown"
+                    country_code = "UN"
+                    lat = None
+                    lon = None
+                    
+                    try:
+                        # Try ip-api via proxy
+                        async with session.get("http://ip-api.com/json", proxy=proxy_url, timeout=5) as geo_res:
+                            if geo_res.status == 200:
+                                data = await geo_res.json()
+                                country = data.get("country", "Unknown")
+                                country_code = data.get("countryCode", "UN")
+                                lat = data.get("lat")
+                                lon = data.get("lon")
+                    except Exception:
+                        pass # GeoIP failed, but proxy is alive
+                    
+                    print(f"✅ Proxy {proxy} is ALIVE ({latency}ms)")
+                    return proxy, latency, country, country_code, lat, lon
+        except Exception as e:
+            # print(f"❌ Proxy {proxy} failed on {test_url}: {e}")
+            pass
+            
     return proxy, None, None, None, None, None
 
 async def process_proxies(proxies):
@@ -152,14 +155,14 @@ async def process_proxies(proxies):
                     proxy_str = f"{proxy}:{country}:{country_code}"
                     item = {"proxy": proxy_str, "latency": latency, "lat": lat, "lon": lon}
 
-                    # Filter: 10ms - 2000ms (Relaxed upper limit)
+                    # Filter: 10ms - 10000ms (Relaxed upper limit)
                     if latency < 10:
                         pass # Too fast/suspicious
                     elif latency < 300:
                         batch_results["gold"].append(item)
                     elif latency < 800:
                         batch_results["silver"].append(item)
-                    elif latency < 2000: # Increased from 1200 to capture more proxies
+                    elif latency < 10000: # Increased to 10s to capture almost everything
                         batch_results["bronze"].append(item)
             
             # Save batch to DB
