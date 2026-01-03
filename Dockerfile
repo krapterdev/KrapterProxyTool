@@ -12,11 +12,19 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/requirements.txt backend_requirements.txt
+RUN pip install --no-cache-dir -r backend_requirements.txt
+
+COPY worker/requirements.txt worker_requirements.txt
+RUN pip install --no-cache-dir -r worker_requirements.txt
 
 # Copy project
 COPY . .
