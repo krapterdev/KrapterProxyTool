@@ -95,15 +95,55 @@
                 <span>Proxy List</span>
             </a>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
-                class="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white font-bold text-xs">
-                U
+                href="/history">
+                <span class="material-symbols-outlined">history</span>
+                <span>History</span>
+            </a>
+        </nav>
+
+        <!-- System Status Widget -->
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">System Status</span>
+                    <div id="system-status-bar" class="bg-emerald-500 h-1.5 w-1.5 rounded-full animate-pulse"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-slate-400 text-sm">dns</span>
+                    <span id="system-status-text" class="text-sm font-bold text-slate-700 dark:text-slate-300">Worker
+                        Active</span>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                    <span id="last-scrape-text">Last: Just now</span>
+                    <span id="total-proxies-count" class="font-mono">0</span>
+                </div>
+
+                <!-- Admin Controls -->
+                <div id="admin-controls"
+                    class="hidden pt-2 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
+                    <button onclick="controlWorker('start')"
+                        class="px-2 py-1 bg-emerald-500/10 text-emerald-500 text-xs rounded hover:bg-emerald-500/20 transition-colors">Start</button>
+                    <button onclick="controlWorker('stop')"
+                        class="px-2 py-1 bg-red-500/10 text-red-500 text-xs rounded hover:bg-red-500/20 transition-colors">Stop</button>
+                    <button onclick="clearData()"
+                        class="col-span-2 px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Clear
+                        Data</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div id="user-initial"
+                    class="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white font-bold text-xs">
+                    U
                 </div>
                 <div class="flex-1 min-w-0">
                     <p id="user-role" class="text-sm font-medium text-slate-900 dark:text-white truncate">Loading...</p>
                     <p id="user-email" class="text-xs text-slate-500 truncate">...</p>
                 </div>
-                </div>
-                </div>
+            </div>
+        </div>
     </aside>
 
     <!-- Mobile Header -->
@@ -474,27 +514,180 @@
                 });
                 if (res.status === 401) { logout(); return; }
                 const data = await res.json();
-                data: {
-                    labels: ['Gold', 'Silver', 'Bronze'],
+                updateDashboard(data);
+                if (document.getElementById('apiKeyDisplay').innerText === "Loading...") { fetchApiKey(); }
+            } catch (e) { console.error("Fetch error:", e); }
+        }
+
+        async function fetchUserInfo() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const user = await res.json();
+                    document.getElementById('user-email').innerText = user.email;
+                    document.getElementById('user-role').innerText = user.is_admin ? "Admin User" : "Standard User";
+                    document.getElementById('user-initial').innerText = user.email.charAt(0).toUpperCase();
+
+                    if (user.is_admin) {
+                        document.getElementById('admin-controls').classList.remove('hidden');
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch user info", e);
+            }
+        }
+
+        async function controlWorker(action) {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/worker/${action}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    alert(`Worker ${action}ed successfully (Status updated)`);
+                    fetchData();
+                }
+            } catch (e) { alert("Action failed"); }
+        }
+
+        async function clearData() {
+            if (!confirm("Are you sure? This will delete ALL proxies.")) return;
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/data/clear`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    alert("Data cleared");
+                    fetchData();
+                }
+            } catch (e) { alert("Action failed"); }
+        }
+
+        // Previous Count Logic
+        let previousCounts = { gold: 0, silver: 0, bronze: 0 };
+
+        function updateDashboard(data) {
+            const gold = data.gold || [];
+            const silver = data.silver || [];
+            const bronze = data.bronze || [];
+
+            // Update Counts with comparison
+            updateCount('count-gold', gold.length, previousCounts.gold);
+            updateCount('count-silver', silver.length, previousCounts.silver);
+            updateCount('count-bronze', bronze.length, previousCounts.bronze);
+
+            previousCounts = { gold: gold.length, silver: silver.length, bronze: bronze.length };
+
+            const lastUpdatedStr = data.last_updated;
+            const totalProxies = data.total || (gold.length + silver.length + bronze.length);
+            document.getElementById('total-proxies-count').innerText = totalProxies.toLocaleString();
+
+            const statusText = document.getElementById('system-status-text');
+            const lastScrapeText = document.getElementById('last-scrape-text');
+            const statusBar = document.getElementById('system-status-bar');
+
+            if (lastUpdatedStr && lastUpdatedStr !== "Never") {
+                const timeStr = lastUpdatedStr.endsWith('Z') ? lastUpdatedStr : lastUpdatedStr + 'Z';
+                const lastDate = new Date(timeStr);
+                const now = new Date();
+                const diffMinutes = Math.floor((now - lastDate) / 60000);
+                const displayMinutes = diffMinutes < 0 ? 0 : diffMinutes;
+                lastScrapeText.innerText = `Last: ${displayMinutes}m ago`;
+
+                if (displayMinutes < 5) {
+                    statusText.innerText = "Worker Active";
+                    statusText.className = "text-sm font-bold text-emerald-500";
+                    statusBar.className = "bg-emerald-500 h-1.5 rounded-full animate-pulse";
+                } else if (displayMinutes < 15) {
+                    statusText.innerText = "Worker Idle";
+                    statusText.className = "text-sm font-bold text-yellow-500";
+                    statusBar.className = "bg-yellow-500 h-1.5 rounded-full";
+                } else {
+                    statusText.innerText = "Worker Stopped";
+                    statusText.className = "text-sm font-bold text-red-500";
+                    statusBar.className = "bg-red-500 h-1.5 rounded-full";
+                }
+            } else {
+                statusText.innerText = "No Data";
+                statusText.className = "text-sm font-bold text-slate-500";
+                statusBar.className = "bg-slate-500 h-1.5 rounded-full";
+                lastScrapeText.innerText = "Last: Never";
+            }
+
+            let allProxies = [
+                ...gold.map(p => ({ ...p, level: 'Gold', color: 'text-yellow-500', badge: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' })),
+                ...silver.map(p => ({ ...p, level: 'Silver', color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' })),
+                ...bronze.map(p => ({ ...p, level: 'Bronze', color: 'text-orange-500', badge: 'bg-orange-500/10 text-orange-500 border-orange-500/20' })),
+            ];
+            allProxiesCache = allProxies;
+            allProxies.sort((a, b) => a.latency - b.latency);
+            const tbody = document.getElementById('proxyTableBody');
+            tbody.innerHTML = '';
+            allProxies.slice(0, 15).forEach(p => {
+                if (!p.proxy) return;
+                const parts = p.proxy.split(':');
+                if (parts.length < 2) return;
+                let ip = parts[0];
+                let port = parts[1];
+                let country = parts.length > 2 ? parts[2] : "Unknown";
+                let countryCode = parts.length > 3 ? parts[3] : null;
+                let flagHtml = countryCode && countryCode !== 'UN' ? `<img src="https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png" class="w-5 h-3.5 rounded-sm object-cover">` : `<span class="material-symbols-outlined text-slate-500 text-[18px]">public</span>`;
+                const row = `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"><td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-slate-700 dark:text-slate-300">${ip}</td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center gap-2">${flagHtml}<span class="text-sm text-slate-700 dark:text-slate-300">${country}</span></div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${port}</td><td class="px-6 py-4 whitespace-nowrap"><span class="font-bold ${p.color}">${p.latency} ms</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${p.badge}">${p.level}</span></td></tr>`;
+                tbody.innerHTML += row;
+            });
+            updateChart(gold.length, silver.length, bronze.length);
+            markers.clearLayers();
+            allProxies.forEach(p => {
+                if (p.lat && p.lon) {
+                    let color = p.level === 'Gold' ? '#eab308' : (p.level === 'Silver' ? '#94a3b8' : '#f97316');
+                    L.circleMarker([p.lat, p.lon], { radius: 4, fillColor: color, color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 }).bindPopup(`<b>${p.proxy.split(':')[0]}</b><br>${p.latency}ms`).addTo(markers);
+                }
+            });
+        }
+
+        function updateCount(id, current, previous) {
+            const el = document.getElementById(id);
+            el.innerText = current;
+            // Add comparison indicator if changed
+            if (current > previous) {
+                el.innerHTML += ` <span class="text-xs text-emerald-500 align-top">+${current - previous}</span>`;
+            } else if (current < previous) {
+                el.innerHTML += ` <span class="text-xs text-red-500 align-top">${current - previous}</span>`;
+            }
+        }
+
+        function updateChart(g, s, b) {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            if (distChart) {
+                distChart.data.datasets[0].data = [g, s, b];
+                distChart.update();
+            } else {
+                distChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Gold', 'Silver', 'Bronze'],
                         datasets: [{
                             data: [g, s, b],
                             backgroundColor: ['#eab308', '#94a3b8', '#f97316'],
                             borderWidth: 0,
                             hoverOffset: 4
                         }]
-                },
-                options: {
-                    responsive: true,
+                    },
+                    options: {
+                        responsive: true,
                         cutout: '70%',
-                            plugins: {
-                        legend: {
-                            position: 'bottom',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
                                 labels: { color: '#94a3b8', usePointStyle: true }
+                            }
                         }
                     }
-                }
-            });
-        }
+                });
+            }
         }
 
         function exportToExcel() {
@@ -525,22 +718,6 @@
         setInterval(fetchData, 5000);
         fetchData();
         fetchUserInfo();
-
-        async function fetchUserInfo() {
-            try {
-                const res = await fetch(`${BACKEND_URL}/api/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const user = await res.json();
-                    document.getElementById('user-email').innerText = user.email;
-                    document.getElementById('user-role').innerText = user.is_admin ? "Admin User" : "Standard User";
-                    document.getElementById('user-initial').innerText = user.email.charAt(0).toUpperCase();
-                }
-            } catch (e) {
-                console.error("Failed to fetch user info", e);
-            }
-        }
     </script>
 </body>
 
