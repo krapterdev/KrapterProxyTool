@@ -104,6 +104,10 @@ async def export_excel(current_user: dict = Depends(get_current_user_obj)):
     
     return Response(content=buffer.getvalue(), headers=headers, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
+@router.get("/api/history")
+async def get_history():
+    return redis_client.get_history()
+
 # Admin Endpoint
 @router.post("/api/admin/upgrade")
 async def upgrade_user(upgrade_data: UserUpgrade, current_user: dict = Depends(get_current_user_obj)):
