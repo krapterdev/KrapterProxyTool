@@ -195,9 +195,21 @@ class PostgresClient:
         conn = get_db_connection()
         cursor = conn.cursor()
         stats = {}
+        
+        # Get counts per level
         for level in ["gold", "silver", "bronze"]:
             cursor.execute("SELECT COUNT(*) FROM proxies WHERE level = %s", (level,))
             stats[level] = cursor.fetchone()[0]
+            
+        # Get total count
+        cursor.execute("SELECT COUNT(*) FROM proxies")
+        stats["total"] = cursor.fetchone()[0]
+        
+        # Get last updated timestamp
+        cursor.execute("SELECT MAX(last_checked) FROM proxies")
+        last_updated = cursor.fetchone()[0]
+        stats["last_updated"] = str(last_updated) if last_updated else "Never"
+        
         conn.close()
         return stats
 
